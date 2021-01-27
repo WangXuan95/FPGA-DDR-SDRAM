@@ -36,18 +36,18 @@ FPGA DDR-SDRAM
 * [简介](#简介)
 * [硬件设计指南](#硬件设计指南)
 * [硬件设计示例](#硬件设计示例)
-* [DDR1 控制器](#DDR1 控制器)
+* [DDR1 控制器](#DDR1控制器)
     * [模块参数](#模块参数)
-    * [模块接口 - 驱动时钟和复位](#模块接口 - 驱动时钟和复位)
+    * [模块接口：驱动时钟和复位](#模块接口：驱动时钟和复位)
     * [时钟频率的选取](#时钟频率的选取)
-    * [模块接口 - DDR1 接口](#模块接口 - DDR1 接口)
-    * [模块接口 - AXI4 从接口](#模块接口 - AXI4 从接口)
+    * [模块接口：DDR1 接口](#模块接口：DDR1 接口)
+    * [模块接口：AXI4 从接口](#模块接口：AXI4 从接口)
     * [位宽参数的确定](#位宽参数的确定)
     * [时序参数的确定](#时序参数的确定)
 * [示例程序](#示例程序)
-    * [示例程序 - 自测](#示例程序 - 自测)
-    * [示例程序 - UART读写](#示例程序 - UART读写)
-* [Verilog 仿真](#Verilog 仿真)
+    * [示例程序：自测](#示例程序：自测)
+    * [示例程序：UART读写](#示例程序：UART读写)
+* [Verilog仿真](#Verilog仿真)
     * [建立仿真工程](#建立仿真工程)
     * [运行仿真](#运行仿真)
     * [修改仿真参数](#修改仿真参数)
@@ -82,7 +82,7 @@ FPGA DDR-SDRAM
 
 该板子的设计在立创EDA中开放，见[这里](https://oshwhub.com/wangxuan/fpga-ddr-ce-shi-ban)。
 
-# DDR1 控制器
+# DDR1控制器
 
 DDR1 控制器代码见 [RTL/ddr_sdram_ctrl.sv](https://github.com/WangXuan95/FPGA-DDR-SDRAM/blob/main/RTL/ddr_sdram_ctrl.sv) ，是一个用 SystemVerilog 编写的模块，它能自动对 DDR1 进行初始化，并定时进行刷新（Refresh）。该模块有一个简化但完备的 AXI4 从接口，通过它可以完成对 DDR1 的读写。本节详细解释该模块的使用方法。
 
@@ -116,7 +116,7 @@ module ddr_sdram_ctrl #(
 | tW2I | 时序参数 | 8'd1~8'd255 | 8'd7 | 该参数规定了一个写动作的最后一个写命令到下一个动作的激活命令(ACT)的间隔。详见下文[时序参数的确定](#时序参数的确定) |
 | tR2I | 时序参数 | 8'd1~8'd255 | 8'd7 | 该参数规定了一个读动作的最后一个读命令到下一个动作的激活命令(ACT)的间隔。详见下文[时序参数的确定](#时序参数的确定) |
 
-## 模块接口 - 驱动时钟和复位
+## 模块接口：驱动时钟和复位
 
 该模块需要一个时钟和一个复位进行驱动，如下：
 
@@ -137,13 +137,13 @@ rstn 是低电平复位信号，正常工作时应该置高。clk 是驱动时�
 
 模块内使用寄存器分频 4 倍产生 DDR1 驱动时钟（ddr_ck_p/ddr_ck_n）和 AXI4 总线用户时钟（aclk）。本节讲述如何决定驱动时钟 clk 的频率。
 
-首先，时钟频率受限于 DDR1 芯片。考虑到所有的 DDR1 的接口频率至少为 75MHz ，则 clk 的下限是 75\*4=300MHz。而 clk 的上限就取决于 DDR1 的芯片型号，例如对于 MT46V64M8P-5B ，查芯片手册可知，-5B 后缀的 DDR1 在 CL=1 时最高时钟频率是 133MHz，则 clk 的上限是 133\*4=532MHz 。
-
-另外，时钟频率的上限还受限于 FPGA 的速度，太高的时钟频率容易导致时序不收敛。该控制器充分考虑时序安全设计，大多数寄存器工作在频率较低用户时钟域；个别寄存器工作在用户时钟的 2 倍频率的时钟下，且输入端口的组合逻辑非常短；还有一个寄存器工作在高频的 clk 下，但输入端口直接来自于上一级的寄存器输出（没有组合逻辑）。因此，即使在速度级别很低的 EP4CE6E22C8N 上，在 300MHz 的驱动时钟下也能保证模块正确运行。在速度等级更高的 FPGA （例如 EP4CE22F17C6N）上，驱动时钟的频率可以更高（例如400MHz）。
+首先，时钟频率受限于 DDR1 芯片。考虑到所有的 DDR1 的接口频率至少为 75MHz ，则 clk 的下限是 75\*4=300MHz。而 clk 的上限就取决于 DDR1 的芯片型号，例如对于 MT46V64M8P-5B ，查芯片手册可知，-5B 后缀的 DDR1 在 CAS Latency (CL)=2 时最高时钟频率是 133MHz，则 clk 的上限是 133\*4=532MHz 。
 
 > 注意：本控制器固定 CAS Latency (CL) = 2。
 
-## 模块接口 - DDR1 接口
+另外，时钟频率的上限还受限于 FPGA 的速度，太高的时钟频率容易导致时序不收敛。该控制器充分考虑时序安全设计，大多数寄存器工作在频率较低用户时钟域；个别寄存器工作在用户时钟的 2 倍频率的时钟下，且输入端口的组合逻辑非常短；还有一个寄存器工作在高频的 clk 下，但输入端口直接来自于上一级的寄存器输出（没有组合逻辑）。因此，即使在速度级别很低的 EP4CE6E22C8N 上，在 300MHz 的驱动时钟下也能保证模块正确运行。在速度等级更高的 FPGA （例如 EP4CE22F17C6N）上，驱动时钟的频率可以更高（例如400MHz）。
+
+## 模块接口：DDR1 接口
 
 以下是该模块的 DDR1 接口。这些接口应该直接从 FPGA 引出，连接到 DDR1 芯片上。
 
@@ -163,9 +163,9 @@ rstn 是低电平复位信号，正常工作时应该置高。clk 是驱动时�
 
 可以看出 DDR1 接口的一些信号的位宽是和参数有关的，用户需要根据 DDR1 的芯片选型来确定模块参数。详见 [位宽参数的确定](#位宽参数的确定)。
 
-想了解 DDR1 接口在初始化、读写、刷新时的波形，请进行 [Verilog 仿真](#Verilog 仿真)。
+想了解 DDR1 接口在初始化、读写、刷新时的波形，请进行 [Verilog仿真](#Verilog仿真)。
 
-## 模块接口 - AXI4 从接口
+## 模块接口：AXI4 从接口
 
 DDR1 控制器对外提供 AXI4 从接口（AXI4 slave）的时钟和复位信号，如下。AXI4 主机应该用它们作为自己的时钟和复位。
 
@@ -273,7 +273,7 @@ AXI4 总线的地址（awaddr和araddr）统一是字节地址，模块会根据
 
 本节讲述如何确定 **BA_BITS**、**ROW_BITS**、**COL_BITS** 和 **DQ_LEVEL** 这 4 个参数。
 
-从[模块接口 - DDR1 接口](#模块接口 - DDR1 接口)一节可以看出 DDR1 接口的一些信号的位宽是和参数有关的，用户需要根据 DDR1 的芯片选型来确定模块参数。
+从[模块接口：DDR1 接口](#模块接口：DDR1 接口)一节可以看出 DDR1 接口的一些信号的位宽是和参数有关的，用户需要根据 DDR1 的芯片选型来确定模块参数。
 
 以 [MICRON 公司的 DDR-SDRAM](https://www.micron.com/products/dram/ddr-sdram) 系列芯片为例，不同芯片有不同的 ROW ADDRESS BITS (行地址宽度）、COL ADDRESS BITS（列地址宽度）、DATA BITS（数据宽度），决定了他们的位宽参数也不同，如下表（注：这些参数都能从芯片datasheet中查到）。
 
@@ -331,7 +331,7 @@ AXI4 总线的地址（awaddr和araddr）统一是字节地址，模块会根据
 
 # 示例程序
 
-## 示例程序 - 自测
+## 示例程序：自测
 
 我基于我画的 [FPGA+DDR1测试板](#硬件设计示例) 做了一个 DDR1 读写自测程序，工程目录是 [example-selftest](https://github.com/WangXuan95/FPGA-DDR-SDRAM/blob/main/example-selftest)，请用 Quartus II 13.1 打开它。
 
@@ -354,7 +354,7 @@ AXI4 总线的地址（awaddr和araddr）统一是字节地址，模块会根据
 
 > WBURST_LEN 和 RBURST_LEN 可以设置的不一样。
 
-## 示例程序 - UART读写
+## 示例程序：UART读写
 
 我基于我画的 [FPGA+DDR1测试板](#硬件设计示例) 做了一个 UART 读写程序，使用该程序，你可以通过 UART 命令，以不同的突发长度来读写 DDR1。工程目录是 [example-uart-read-write](https://github.com/WangXuan95/FPGA-DDR-SDRAM/blob/main/example-uart-read-write)，请用 Quartus II 13.1 打开它。
 
@@ -393,7 +393,7 @@ AXI4 总线的地址（awaddr和araddr）统一是字节地址，模块会根据
 
     r0 1e
 
-# Verilog 仿真
+# Verilog仿真
 
 ## 建立仿真工程
 
@@ -407,7 +407,7 @@ AXI4 总线的地址（awaddr和araddr）统一是字节地址，模块会根据
 | [sim-selftest/DDR_MODEL/ddr.v](https://github.com/WangXuan95/FPGA-DDR-SDRAM/blob/main/sim-selftest/DDR_MODEL/ddr.v) | [MICRON 公司提供的 DDR1 仿真模型](https://www.micron.com/products/dram/ddr-sdram/part-catalog/mt46v64m8p-5b) |
 | [sim-selftest/DDR_MODEL/ddr_parameters.vh](https://github.com/WangXuan95/FPGA-DDR-SDRAM/blob/main/sim-selftest/DDR_MODEL/ddr_parameters.vh) | DDR1 仿真模型的参数配置文件 |
 
-该仿真工程的行为类似[自测程序](#示例程序 - 自测)，[axi_self_test_master.sv](https://github.com/WangXuan95/FPGA-DDR-SDRAM/blob/main/sim-selftest/SRC/axi_self_test_master.sv) 作为 AXI4 主机，将有规律的数据写入 DDR1 中，只不过不是全部写入，而是只写入 DDR1 的前 16KB （因为仿真模型的存储空间有限），然后一轮一轮地反复读出数据，比较是否有不匹配的数据，若有，则在 error 信号上产生一个时钟周期的高电平。
+该仿真工程的行为类似[自测程序](#示例程序：自测)，[axi_self_test_master.sv](https://github.com/WangXuan95/FPGA-DDR-SDRAM/blob/main/sim-selftest/SRC/axi_self_test_master.sv) 作为 AXI4 主机，将有规律的数据写入 DDR1 中，只不过不是全部写入，而是只写入 DDR1 的前 16KB （因为仿真模型的存储空间有限），然后一轮一轮地反复读出数据，比较是否有不匹配的数据，若有，则在 error 信号上产生一个时钟周期的高电平。
 
 ## 运行仿真
 
@@ -435,7 +435,7 @@ AXI4 总线的地址（awaddr和araddr）统一是字节地址，模块会根据
 对于 MICRON 公司的 DDR1 系列，这些参数应该这样修改：
 
 | 芯片名称 | BA_BITS | ROW_BITS | COL_BITS | DQ_LEVEL | DQ_BITS
-| :--: | :--: | :--: | :--: | :--: | :--: | :--: | :--: | :--: | :--: |
+| :--: | :--: | :--: | :--: | :--: | :--: |
 | MT46V64M4   | 2 | 13 | 11 | 0 | 4  |
 | MT46V128M4  | 2 | 13 | 12 | 0 | 4  |
 | MT46V256M4  | 2 | 14 | 12 | 0 | 4  |
