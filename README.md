@@ -19,7 +19,7 @@ FPGA DDR-SDRAM
     ------------|            |-------------------------|          |--------------|
       用户逻辑                       DDR1 控制器                       DDR1 芯片
 
-很多低端 FPGA 开发板（例如 [DE0-Nano](https://www.terasic.com.tw/cgi-bin/page/archive.pl?Language=English&No=593)）使用 SDR-SDRAM 作为片外存储，而 DDR-SDRAM (DDR1) 比 SDR-SDRAM 容量更大，价格更低。且与SDR-SDRAM一样，DDR1也能使用低端FPGA的普通的IO管脚直接驱动。我编写了一个软核的 AXI4 接口的 DDR1 控制器（见 [RTL/ddr_sdram_ctrl.sv](https://github.com/WangXuan95/FPGA-DDR-SDRAM/blob/main/RTL/ddr_sdram_ctrl.sv) ）。该控制器的特点有：
+很多低端 FPGA 开发板（例如 [DE0-Nano](https://www.terasic.com.tw/cgi-bin/page/archive.pl?Language=English&No=593)）使用 SDR-SDRAM 作为片外存储，而 DDR-SDRAM (DDR1) 比 SDR-SDRAM 容量更大，价格更低。且与SDR-SDRAM一样，DDR1也能使用低端FPGA的普通的IO管脚直接驱动。我编写了一个软核的 AXI4 接口的 DDR1 控制器（见 [RTL/ddr_sdram_ctrl.sv](./RTL/ddr_sdram_ctrl.sv) ）。该控制器的特点有：
 
 * **平台无关** ：纯 RTL 编写，可以在 Altera 和 Xilinx 等各种 FPGA 上运行。
 * **兼容性强** ：支持各种位宽和容量的 DDR1 （已在MICRON所有位宽和容量的DDR1型号上仿真通过）。
@@ -74,17 +74,17 @@ FPGA DDR-SDRAM
 
 我用 Altera Cyclone IV 的一个非常低端和廉价的 FPGA （型号：EP4CE6E22C8N) 和 MICRON 的 64MB DDR1 （型号 MT46V64M8TG-6T）画了一个小板子，本库的所有例子可以直接在该板子上直接运行。
 
-| ![board-image](https://github.com/WangXuan95/FPGA-DDR-SDRAM/blob/main/images/board.jpg) |
+| ![board-image](./images/board.jpg) |
 | :---: |
 | 图：FPGA + DDR1 测试板 |
 
-原理图见 [hardware/sch.pdf](https://github.com/WangXuan95/FPGA-DDR-SDRAM/blob/main/hardware/sch.pdf)，PCB制造文件见 [hardware/gerber.zip](https://github.com/WangXuan95/FPGA-DDR-SDRAM/blob/main/hardware/gerber.zip) ，在布局布线时，使用双层板即可，不需像 DDR2 以上的设计那样刻意注意等长和阻抗匹配，因为该电路工作频率为双边沿 75MHz，不是特别高，只需注意让FPGA与DDR距离尽量近，布线尽量短即可。比如我在布局时，把DDR1芯片放在了FPGA芯片正对的背面，从而保证布线都较短。
+原理图见 [hardware/sch.pdf](./hardware/sch.pdf)，PCB制造文件见 [hardware/gerber.zip](./hardware/gerber.zip) ，在布局布线时，使用双层板即可，不需像 DDR2 以上的设计那样刻意注意等长和阻抗匹配，因为该电路工作频率为双边沿 75MHz，不是特别高，只需注意让FPGA与DDR距离尽量近，布线尽量短即可。比如我在布局时，把DDR1芯片放在了FPGA芯片正对的背面，从而保证布线都较短。
 
 该板子的设计在立创EDA中开放，见[这里](https://oshwhub.com/wangxuan/fpga-ddr-ce-shi-ban)。
 
 # DDR1控制器
 
-DDR1 控制器代码见 [RTL/ddr_sdram_ctrl.sv](https://github.com/WangXuan95/FPGA-DDR-SDRAM/blob/main/RTL/ddr_sdram_ctrl.sv) ，是一个用 SystemVerilog 编写的模块，它能自动对 DDR1 进行初始化，并定时进行刷新（Refresh）。该模块有一个简化但完备的 AXI4 从接口，通过它可以完成对 DDR1 的读写。本节详细解释该模块的使用方法。
+DDR1 控制器代码见 [RTL/ddr_sdram_ctrl.sv](./RTL/ddr_sdram_ctrl.sv) ，是一个用 SystemVerilog 编写的模块，它能自动对 DDR1 进行初始化，并定时进行刷新（Refresh）。该模块有一个简化但完备的 AXI4 从接口，通过它可以完成对 DDR1 的读写。本节详细解释该模块的使用方法。
 
 ## 模块参数
 
@@ -333,45 +333,45 @@ AXI4 总线的地址（awaddr和araddr）统一是字节地址，模块会根据
 
 ## 示例程序：自测
 
-我基于我画的 [FPGA+DDR1测试板](#硬件设计示例) 做了一个 DDR1 读写自测程序，工程目录是 [example-selftest](https://github.com/WangXuan95/FPGA-DDR-SDRAM/blob/main/example-selftest)，请用 Quartus II 13.1 打开它。
+我基于我画的 [FPGA+DDR1测试板](#硬件设计示例) 做了一个 DDR1 读写自测程序，工程目录是 [example-selftest](./example-selftest)，请用 Quartus II 13.1 打开它。
 
 该工程包含以下文件：
 
 | 文件名称 | 用途 |
 | :---- | :--- |
-| [top.sv](https://github.com/WangXuan95/FPGA-DDR-SDRAM/blob/main/example-selftest/RTL/top.sv) | 顶层 |
-| [axi_self_test_master.sv](https://github.com/WangXuan95/FPGA-DDR-SDRAM/blob/main/example-selftest/RTL/axi_self_test_master.sv) | 是 AXI4 主机，通过 AXI4 先把有规律的数据写入 DDR1，然后读回，比较读回的数据是否符合规律，并对不匹配的情况进行计数。 |
-| [ddr_sdram_ctrl.sv](https://github.com/WangXuan95/FPGA-DDR-SDRAM/blob/main/RTL/ddr_sdram_ctrl.sv) | DDR1 控制器 |
-| [pll.v](https://github.com/WangXuan95/FPGA-DDR-SDRAM/blob/main/example-selftest/IP/pll.v) | 使用板上 50MHz 晶振产生 300MHz 时钟，输出给 DDR1 控制器 |
+| [top.sv](./example-selftest/RTL/top.sv) | 顶层 |
+| [axi_self_test_master.sv](./example-selftest/RTL/axi_self_test_master.sv) | 是 AXI4 主机，通过 AXI4 先把有规律的数据写入 DDR1，然后读回，比较读回的数据是否符合规律，并对不匹配的情况进行计数。 |
+| [ddr_sdram_ctrl.sv](./RTL/ddr_sdram_ctrl.sv) | DDR1 控制器 |
+| [pll.v](./example-selftest/IP/pll.v) | 使用板上 50MHz 晶振产生 300MHz 时钟，输出给 DDR1 控制器 |
 
 **写入**：该工程开始运行后，会先通过 AXI4 把整个 DDR1 都写一遍，直接把地址字写入相应的地址。例如，如果 AXI4 的数据宽度是 16bit，那么地址 0x000002 处写 0x0001。地址 0x123456 处写 0x3456。
 
 **读取&错误校验**：写完整个 DDR1 后，该工程会一轮一轮地反复读取整个 DDR1，若读出的数据不符合上述规律，就认为出现错误，在错误信号（error）上产生一个高电平脉冲，并把错误计数信号（error_cnt）+1。如果 DDR1 配置正确，是不该出现 error 信号的。你可以测量 error_cnt 对应的引脚，若为0（全低电平），说明不存在错误。
 
-**SignalTap抓波形**：该工程包含一个 SignalTap 文件（[stp1.stp](https://github.com/WangXuan95/FPGA-DDR-SDRAM/blob/main/example-selftest/SignalTap))，在程序运行时，可以用它查看 DDR1 接口上的波形。它以 error=1 为触发信号，因此如果读写自测没有出错，它就不会被触发。因为该工程随时都在读取 DDR1，要想看 DDR1 接口上的波形，直接按“停止”按钮即可。
+**SignalTap抓波形**：该工程包含一个 SignalTap 文件 stp1.stp，在程序运行时，可以用它查看 DDR1 接口上的波形。它以 error=1 为触发信号，因此如果读写自测没有出错，它就不会被触发。因为该工程随时都在读取 DDR1，要想看 DDR1 接口上的波形，直接按“停止”按钮即可。
 
-**修改 AXI4 突发长度**：在 [top.sv](https://github.com/WangXuan95/FPGA-DDR-SDRAM/blob/main/example-selftest/RTL/top.sv) 的第 82，83 行可以修改 WBURST_LEN 和 RBURST_LEN，从而修改自测时的写/读突发长度，该自测程序只支持 2^n-1 这种突发长度，即 WBURST_LEN 和 RBURST_LEN 必须取形如 0,1,3,7,15,31,…… 的值（注意，这只是我编写的自测程序的限制，DDR1 控制器是支持 0~255 之间的任意突发长度的。
+**修改 AXI4 突发长度**：在 [top.sv](./example-selftest/RTL/top.sv) 的第 82，83 行可以修改 WBURST_LEN 和 RBURST_LEN，从而修改自测时的写/读突发长度，该自测程序只支持 2^n-1 这种突发长度，即 WBURST_LEN 和 RBURST_LEN 必须取形如 0,1,3,7,15,31,…… 的值（注意，这只是我编写的自测程序的限制，DDR1 控制器是支持 0~255 之间的任意突发长度的。
 
 > WBURST_LEN 和 RBURST_LEN 可以设置的不一样。
 
 ## 示例程序：UART读写
 
-我基于我画的 [FPGA+DDR1测试板](#硬件设计示例) 做了一个 UART 读写程序，使用该程序，你可以通过 UART 命令，以不同的突发长度来读写 DDR1。工程目录是 [example-uart-read-write](https://github.com/WangXuan95/FPGA-DDR-SDRAM/blob/main/example-uart-read-write)，请用 Quartus II 13.1 打开它。
+我基于我画的 [FPGA+DDR1测试板](#硬件设计示例) 做了一个 UART 读写程序，使用该程序，你可以通过 UART 命令，以不同的突发长度来读写 DDR1。工程目录是 [example-uart-read-write](./example-uart-read-write)，请用 Quartus II 13.1 打开它。
 
 该工程包含以下文件：
 
 | 文件名称 | 用途 |
 | :---- | :--- |
-| [top.sv](https://github.com/WangXuan95/FPGA-DDR-SDRAM/blob/main/example-uart-read-write/RTL/top.sv) | 顶层 |
-| [uart2axi4.sv](https://github.com/WangXuan95/FPGA-DDR-SDRAM/blob/main/example-uart-read-write/RTL/uart2axi4.sv) | 是 AXI4 主机，能把 UART RX 收到的命令转换成 AXI4 读写操作，并把读操作读出的数据通过 UART TX 发送出去 |
-| [uart_rx.sv](https://github.com/WangXuan95/FPGA-DDR-SDRAM/blob/main/example-uart-read-write/RTL/uart_rx.sv) | UART RX 接收器，被 uart2axi4.sv 调用  |
-| [axis2uarttx.sv](https://github.com/WangXuan95/FPGA-DDR-SDRAM/blob/main/example-uart-read-write/RTL/axis2uarttx.sv) | UART TX 发送器，被 uart2axi4.sv 调用  |
-| [ddr_sdram_ctrl.sv](https://github.com/WangXuan95/FPGA-DDR-SDRAM/blob/main/RTL/ddr_sdram_ctrl.sv) | DDR1 控制器 |
-| [pll.v](https://github.com/WangXuan95/FPGA-DDR-SDRAM/blob/main/example-uart-read-write/IP/pll.v) | 使用板上 50MHz 晶振产生 300MHz 时钟，输出给 DDR1 控制器 |
+| [top.sv](./example-uart-read-write/RTL/top.sv) | 顶层 |
+| [uart2axi4.sv](./example-uart-read-write/RTL/uart2axi4.sv) | 是 AXI4 主机，能把 UART RX 收到的命令转换成 AXI4 读写操作，并把读操作读出的数据通过 UART TX 发送出去 |
+| [uart_rx.sv](./example-uart-read-write/RTL/uart_rx.sv) | UART RX 接收器，被 uart2axi4.sv 调用  |
+| [axis2uarttx.sv](./example-uart-read-write/RTL/axis2uarttx.sv) | UART TX 发送器，被 uart2axi4.sv 调用  |
+| [ddr_sdram_ctrl.sv](./RTL/ddr_sdram_ctrl.sv) | DDR1 控制器 |
+| [pll.v](./example-uart-read-write/IP/pll.v) | 使用板上 50MHz 晶振产生 300MHz 时钟，输出给 DDR1 控制器 |
 
 [FPGA+DDR1测试板](#硬件设计示例)上有一个 CH340E 芯片（USB 转 UART），因此插上 USB 线后就可以在电脑上看见 UART 对应的 COM 口（需要先在[这里](http://www.wch.cn/product/CH340.html)下载安装 CH341 的驱动）。
 
-工程上传 FPGA 后，双击打开我编写的一个串口小工具 [UartSession.exe](https://github.com/WangXuan95/FPGA-DDR-SDRAM/blob/main/UartSession.exe) ，根据提示打开板子对应的 COM 口，然后打如下的命令+回车，可以把 0x0123 0x4567 0x89ab 0xcdef 这 4 个数据写入起始地址0x12345。（AXI4总线上会产生一个突发长度为 4 的写操作）。
+工程上传 FPGA 后，双击打开我编写的一个串口小工具 [UartSession.exe](./UartSession.exe) ，根据提示打开板子对应的 COM 口，然后打如下的命令+回车，可以把 0x0123 0x4567 0x89ab 0xcdef 这 4 个数据写入起始地址0x12345。（AXI4总线上会产生一个突发长度为 4 的写操作）。
 
     w12345 0123 4567 89ab cdef
 
@@ -381,7 +381,7 @@ AXI4 总线的地址（awaddr和araddr）统一是字节地址，模块会根据
 
 效果如下图，前4个数据 (0123 4567 89ab cdef) 就是我们已经写入 DDR1 的，后4个数据我们没写过，是 DDR1 初始化后自带的随机数据。
 
-| ![UART读写](https://github.com/WangXuan95/FPGA-DDR-SDRAM/blob/main/images/UartSession.png) |
+| ![UART读写](./images/UartSession.png) |
 | :--: |
 | 图：使用 UartSession.exe 测试 DDR1 读写 |
 
@@ -397,23 +397,23 @@ AXI4 总线的地址（awaddr和araddr）统一是字节地址，模块会根据
 
 ## 建立仿真工程
 
-仿真所需要的文件在目录 [sim-selftest](https://github.com/WangXuan95/FPGA-DDR-SDRAM/blob/main/sim-selftest) 里，你可以用以下 Verilog 文件建立仿真工程：
+仿真所需要的文件在目录 [sim-selftest](./sim-selftest) 里，你可以用以下 Verilog 文件建立仿真工程：
 
 | 文件路径 | 用途 |
 | :---- | :--- |
-| [sim-selftest/SRC/tb_ddr_ctrl.sv](https://github.com/WangXuan95/FPGA-DDR-SDRAM/blob/main/sim-selftest/SRC/tb_ddr_ctrl.sv) | 仿真顶层 |
-| [sim-selftest/SRC/axi_self_test_master.sv](https://github.com/WangXuan95/FPGA-DDR-SDRAM/blob/main/sim-selftest/SRC/axi_self_test_master.sv) | 是 AXI4 主机，通过 AXI4 先把有规律的数据写入 DDR1，然后读回，比较读回的数据是否符合规律，并对不匹配的情况进行计数。 |
-| [RTL/ddr_sdram_ctrl.sv](https://github.com/WangXuan95/FPGA-DDR-SDRAM/blob/main/RTL/ddr_sdram_ctrl.sv) | DDR1 控制器 |
-| [sim-selftest/DDR_MODEL/ddr.v](https://github.com/WangXuan95/FPGA-DDR-SDRAM/blob/main/sim-selftest/DDR_MODEL/ddr.v) | [MICRON 公司提供的 DDR1 仿真模型](https://www.micron.com/products/dram/ddr-sdram/part-catalog/mt46v64m8p-5b) |
-| [sim-selftest/DDR_MODEL/ddr_parameters.vh](https://github.com/WangXuan95/FPGA-DDR-SDRAM/blob/main/sim-selftest/DDR_MODEL/ddr_parameters.vh) | DDR1 仿真模型的参数配置文件 |
+| [sim-selftest/SRC/tb_ddr_ctrl.sv](./sim-selftest/SRC/tb_ddr_ctrl.sv) | 仿真顶层 |
+| [sim-selftest/SRC/axi_self_test_master.sv](./sim-selftest/SRC/axi_self_test_master.sv) | 是 AXI4 主机，通过 AXI4 先把有规律的数据写入 DDR1，然后读回，比较读回的数据是否符合规律，并对不匹配的情况进行计数。 |
+| [RTL/ddr_sdram_ctrl.sv](./RTL/ddr_sdram_ctrl.sv) | DDR1 控制器 |
+| [sim-selftest/DDR_MODEL/ddr.v](./sim-selftest/DDR_MODEL/ddr.v) | [MICRON 公司提供的 DDR1 仿真模型](https://www.micron.com/products/dram/ddr-sdram/part-catalog/mt46v64m8p-5b) |
+| [sim-selftest/DDR_MODEL/ddr_parameters.vh](./sim-selftest/DDR_MODEL/ddr_parameters.vh) | DDR1 仿真模型的参数配置文件 |
 
-该仿真工程的行为类似[自测程序](#示例程序：自测)，[axi_self_test_master.sv](https://github.com/WangXuan95/FPGA-DDR-SDRAM/blob/main/sim-selftest/SRC/axi_self_test_master.sv) 作为 AXI4 主机，将有规律的数据写入 DDR1 中，只不过不是全部写入，而是只写入 DDR1 的前 16KB （因为仿真模型的存储空间有限），然后一轮一轮地反复读出数据，比较是否有不匹配的数据，若有，则在 error 信号上产生一个时钟周期的高电平。
+该仿真工程的行为类似[自测程序](#示例程序：自测)，[axi_self_test_master.sv](./sim-selftest/SRC/axi_self_test_master.sv) 作为 AXI4 主机，将有规律的数据写入 DDR1 中，只不过不是全部写入，而是只写入 DDR1 的前 16KB （因为仿真模型的存储空间有限），然后一轮一轮地反复读出数据，比较是否有不匹配的数据，若有，则在 error 信号上产生一个时钟周期的高电平。
 
 ## 运行仿真
 
 建立工程后，直接运行仿真，得到如下波形。前 294us，AXI4 主机在进行前 16KB 的写入；294us 之后，AXI4 主机在不断的读出数据。error 信号一直为低电平说明读出的数据无误。
 
-| ![仿真波形](https://github.com/WangXuan95/FPGA-DDR-SDRAM/blob/main/images/sim.png) |
+| ![仿真波形](./images/sim.png) |
 | :--: |
 | 图：仿真波形 |
 
@@ -423,14 +423,14 @@ AXI4 总线的地址（awaddr和araddr）统一是字节地址，模块会根据
 
 以上仿真默认配置的参数是使用 MT46V64M8 ，即 ROW_BITS=13，COL_BITS=11，DQ_BITS=8。如果想对其它型号的 DDR1 芯片进行仿真，需要修改的参数如下：
 
-* 仿真顶层中的 **BA_BITS**：见 [sim-selftest/SRC/tb_ddr_ctrl.sv](https://github.com/WangXuan95/FPGA-DDR-SDRAM/blob/main/sim-selftest/SRC/tb_ddr_ctrl.sv) 第 8 行。
-* DDR1 模型中的 **BA_BITS**：见 [sim-selftest/DDR_MODEL/ddr_parameters.vh](https://github.com/WangXuan95/FPGA-DDR-SDRAM/blob/main/sim-selftest/DDR_MODEL/ddr_parameters.vh) 第 35 行。
-* 仿真顶层中的 **ROW_BITS**：见 [sim-selftest/SRC/tb_ddr_ctrl.sv](https://github.com/WangXuan95/FPGA-DDR-SDRAM/blob/main/sim-selftest/SRC/tb_ddr_ctrl.sv) 第 9 行。
-* DDR1 模型中的 **ROW_BITS**：见 [sim-selftest/DDR_MODEL/ddr_parameters.vh](https://github.com/WangXuan95/FPGA-DDR-SDRAM/blob/main/sim-selftest/DDR_MODEL/ddr_parameters.vh) 第 36 行。
-* 仿真顶层中的 **COL_BITS**：见 [sim-selftest/SRC/tb_ddr_ctrl.sv](https://github.com/WangXuan95/FPGA-DDR-SDRAM/blob/main/sim-selftest/SRC/tb_ddr_ctrl.sv) 第 10 行。
-* DDR1 模型中的 **COL_BITS**：见 [sim-selftest/DDR_MODEL/ddr_parameters.vh](https://github.com/WangXuan95/FPGA-DDR-SDRAM/blob/main/sim-selftest/DDR_MODEL/ddr_parameters.vh) 第 37 行。
-* 仿真顶层中的 **DQ_LEVEL**：见 [sim-selftest/SRC/tb_ddr_ctrl.sv](https://github.com/WangXuan95/FPGA-DDR-SDRAM/blob/main/sim-selftest/SRC/tb_ddr_ctrl.sv) 第 11 行。
-* DDR1 模型中的 **DQ_BITS**：见 [sim-selftest/DDR_MODEL/ddr_parameters.vh](https://github.com/WangXuan95/FPGA-DDR-SDRAM/blob/main/sim-selftest/DDR_MODEL/ddr_parameters.vh) 第 38 行。
+* 仿真顶层中的 **BA_BITS**：见 [sim-selftest/SRC/tb_ddr_ctrl.sv](./sim-selftest/SRC/tb_ddr_ctrl.sv) 第 8 行。
+* DDR1 模型中的 **BA_BITS**：见 [sim-selftest/DDR_MODEL/ddr_parameters.vh](./sim-selftest/DDR_MODEL/ddr_parameters.vh) 第 35 行。
+* 仿真顶层中的 **ROW_BITS**：见 [sim-selftest/SRC/tb_ddr_ctrl.sv](./sim-selftest/SRC/tb_ddr_ctrl.sv) 第 9 行。
+* DDR1 模型中的 **ROW_BITS**：见 [sim-selftest/DDR_MODEL/ddr_parameters.vh](./sim-selftest/DDR_MODEL/ddr_parameters.vh) 第 36 行。
+* 仿真顶层中的 **COL_BITS**：见 [sim-selftest/SRC/tb_ddr_ctrl.sv](./sim-selftest/SRC/tb_ddr_ctrl.sv) 第 10 行。
+* DDR1 模型中的 **COL_BITS**：见 [sim-selftest/DDR_MODEL/ddr_parameters.vh](./sim-selftest/DDR_MODEL/ddr_parameters.vh) 第 37 行。
+* 仿真顶层中的 **DQ_LEVEL**：见 [sim-selftest/SRC/tb_ddr_ctrl.sv](./sim-selftest/SRC/tb_ddr_ctrl.sv) 第 11 行。
+* DDR1 模型中的 **DQ_BITS**：见 [sim-selftest/DDR_MODEL/ddr_parameters.vh](./sim-selftest/DDR_MODEL/ddr_parameters.vh) 第 38 行。
 
 对于 MICRON 公司的 DDR1 系列，这些参数应该这样修改：
 
@@ -446,7 +446,7 @@ AXI4 总线的地址（awaddr和araddr）统一是字节地址，模块会根据
 | MT46V32M16  | 2 | 13 | 10 | 2 | 16 |
 | MT46V64M16  | 2 | 14 | 10 | 2 | 16 |
 
-另外，你可以修改 [tb_ddr_ctrl.sv](https://github.com/WangXuan95/FPGA-DDR-SDRAM/blob/main/sim-selftest/SRC/tb_ddr_ctrl.sv) 的第 18 和 19 行来修改仿真时的突发读写的长度。
+另外，你可以修改 [tb_ddr_ctrl.sv](./sim-selftest/SRC/tb_ddr_ctrl.sv) 的第 18 和 19 行来修改仿真时的突发读写的长度。
 
 # 参考资料
 
