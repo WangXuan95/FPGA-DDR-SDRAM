@@ -72,7 +72,7 @@ FPGA DDR-SDRAM
 
 # 硬件设计示例
 
-我用 Altera Cyclone IV 的一个非常低端和廉价的 FPGA （型号：EP4CE6E22C8N) 和 MICRON 的 64MB DDR1 （型号 MT46V64M8TG-6T）画了一个小板子，本库的所有例子可以直接在该板子上直接运行。
+为了进行展示，我用 Altera Cyclone IV 的最低廉的 FPGA （型号：EP4CE6E22C8N) 和 MICRON 的 64MB DDR1 （型号 MT46V64M8TG-6T）画了一个小板子，本库的所有例子可以直接在该板子上直接运行。（如果你要在自己的PCB设计中使用 DDR1 ，只要抄我这个板子就行）
 
 | ![board-image](./images/board.jpg) |
 | :---: |
