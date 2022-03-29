@@ -1,6 +1,20 @@
-`timescale 1 ns/1 ns
 
-module tb_ddr_ctrl();
+//--------------------------------------------------------------------------------------------------------
+// Module  : tb_ddr_sdram_ctrl
+// Type    : simulation, top
+// Standard: SystemVerilog 2005 (IEEE1800-2005)
+// Function: testbench for ddr_sdram_ctrl
+//--------------------------------------------------------------------------------------------------------
+
+`timescale 1ps/1ps
+
+module tb_ddr_sdram_ctrl();
+
+// -----------------------------------------------------------------------------------------------------------------------------
+// simulation control
+// -----------------------------------------------------------------------------------------------------------------------------
+initial $dumpvars(0, tb_ddr_sdram_ctrl);
+initial #200000000 $finish;              // simulation for 200us
 
 // -------------------------------------------------------------------------------------
 //   DDR-SDRAM parameters
@@ -28,7 +42,7 @@ localparam  D_WIDTH = (8<<DQ_LEVEL);
 //   driving clock and reset generate
 // -------------------------------------------------------------------------------------
 reg rstn=1'b0, clk300m=1'b1;
-always #1.6667 clk300m = ~clk300m;
+always #1667 clk300m = ~clk300m;
 initial begin repeat(4) @(posedge clk300m); rstn<=1'b1; end
 
 // -------------------------------------------------------------------------------------
@@ -76,8 +90,8 @@ wire               error;
 //   meta AXI4 master for testing
 // -------------------------------------------------------------------------------------
 axi_self_test_master #(
+    .A_WIDTH_TEST( 12          ),
     .A_WIDTH     ( A_WIDTH     ),
-    .A_WIDTH_TEST( 14          ),
     .D_WIDTH     ( D_WIDTH     ),
     .D_LEVEL     ( DQ_LEVEL    ),
     .WBURST_LEN  ( WBURST_LEN  ),
@@ -120,7 +134,7 @@ ddr_sdram_ctrl #(
     .tW2I        ( 8'd6        ),
     .tR2I        ( 8'd6        )
 ) ddr_sdram_ctrl_i (
-    .rstn        ( rstn        ),
+    .rstn_async  ( rstn        ),
     .clk         ( clk300m     ),
     .aresetn     ( aresetn     ),
     .aclk        ( aclk        ),
@@ -157,9 +171,9 @@ ddr_sdram_ctrl #(
 );
 
 // -------------------------------------------------------------------------------------
-//   DDR-SDRAM simulation model
+//  MICRON DDR-SDRAM simulation model
 // -------------------------------------------------------------------------------------
-ddr ddr_i (
+micron_ddr_sdram_model ddr_model_i (
     .Clk         ( ddr_ck_p    ),
     .Clk_n       ( ddr_ck_n    ),
     .Cke         ( ddr_cke     ),

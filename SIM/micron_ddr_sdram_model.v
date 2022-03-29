@@ -80,10 +80,105 @@
 
 // DO NOT CHANGE THE TIMESCALE
 // MAKE SURE YOUR SIMULATOR USE "PS" RESOLUTION
-`timescale 1ns / 1ps
+`timescale 1ps/1ps
 
-module ddr (Clk, Clk_n, Cke, Cs_n, Ras_n, Cas_n, We_n, Ba , Addr, Dm, Dq, Dqs);
-    `include "ddr_parameters.vh"
+module micron_ddr_sdram_model (Clk, Clk_n, Cke, Cs_n, Ras_n, Cas_n, We_n, Ba , Addr, Dm, Dq, Dqs);
+
+`define sg5B
+
+    parameter no_halt          =       1; // If set to 1, the model won't halt on command sequence/major errors
+    parameter DEBUG            =       1; // Turn on DEBUG message
+
+    
+    parameter BA_BITS          =       2; // Set this parmaeter to control how many Bank Address bits are used
+    parameter ROW_BITS         =      13; // Set this parameter to control how many Address bits are used
+    parameter COL_BITS         =      11; // Set this parameter to control how many Column bits are used
+    parameter DQ_BITS          =       8; // Set this parameter to control how many Data bits are used
+    
+    
+    parameter ADDR_BITS        = ROW_BITS;
+    
+    parameter part_mem_bits    =      15;                    // Set this parameter to control how many unique addresses are used
+
+    parameter full_mem_bits    = BA_BITS+ROW_BITS+COL_BITS;  // Set this parameter to control how many unique addresses are used
+    
+    parameter DQS_BITS         = (DQ_BITS + 4) / 8;
+    parameter DM_BITS          = DQS_BITS;
+
+`ifdef sg5B                               //              Timing Parameters for -5B (CL = 3)
+    parameter tCK              =     5.0; // tCK    ns    Nominal Clock Cycle Time
+    parameter tDQSQ            =     0.4; // tDQSQ  ns    DQS-DQ skew, DQS to last DQ valid, per group, per access
+    parameter tMRD             =    10.0; // tMRD   ns    Load Mode Register command cycle time
+    parameter tRAP             =    15.0; // tRAP   ns    ACTIVE to READ with Auto precharge command
+    parameter tRAS             =    40.0; // tRAS   ns    Active to Precharge command time
+    parameter tRC              =    55.0; // tRC    ns    Active to Active/Auto Refresh command time
+    parameter tRFC             =    70.0; // tRFC   ns    Refresh to Refresh Command interval time
+    parameter tRCD             =    15.0; // tRCD   ns    Active to Read/Write command time
+    parameter tRP              =    15.0; // tRP    ns    Precharge command period
+    parameter tRRD             =    10.0; // tRRD   ns    Active bank a to Active bank b command time
+    parameter tWR              =    15.0; // tWR    ns    Write recovery time
+`else `ifdef sg6T                         //              Timing Parameters for -6T (CL = 2.5)
+    parameter tCK              =     6.0; // tCK    ns    Nominal Clock Cycle Time
+    parameter tDQSQ            =    0.45; // tDQSQ  ns    DQS-DQ skew, DQS to last DQ valid, per group, per access
+    parameter tMRD             =    12.0; // tMRD   ns    Load Mode Register command cycle time
+    parameter tRAP             =    15.0; // tRAP   ns    ACTIVE to READ with Auto precharge command
+    parameter tRAS             =    42.0; // tRAS   ns    Active to Precharge command time
+    parameter tRC              =    60.0; // tRC    ns    Active to Active/Auto Refresh command time
+    parameter tRFC             =    72.0; // tRFC   ns    Refresh to Refresh Command interval time
+    parameter tRCD             =    15.0; // tRCD   ns    Active to Read/Write command time
+    parameter tRP              =    15.0; // tRP    ns    Precharge command period
+    parameter tRRD             =    12.0; // tRRD   ns    Active bank a to Active bank b command time
+    parameter tWR              =    15.0; // tWR    ns    Write recovery time
+`else `ifdef sg6                          //              Timing Parameters for -6 (CL = 2.5)
+    parameter tCK              =     6.0; // tCK    ns    Nominal Clock Cycle Time
+    parameter tDQSQ            =     0.4; // tDQSQ  ns    DQS-DQ skew, DQS to last DQ valid, per group, per access
+    parameter tMRD             =    12.0; // tMRD   ns    Load Mode Register command cycle time
+    parameter tRAP             =    15.0; // tRAP   ns    ACTIVE to READ with Auto precharge command
+    parameter tRAS             =    42.0; // tRAS   ns    Active to Precharge command time
+    parameter tRC              =    60.0; // tRC    ns    Active to Active/Auto Refresh command time
+    parameter tRFC             =    72.0; // tRFC   ns    Refresh to Refresh Command interval time
+    parameter tRCD             =    15.0; // tRCD   ns    Active to Read/Write command time
+    parameter tRP              =    15.0; // tRP    ns    Precharge command period
+    parameter tRRD             =    12.0; // tRRD   ns    Active bank a to Active bank b command time
+    parameter tWR              =    15.0; // tWR    ns    Write recovery time
+`else `ifdef sg75E                        //              Timing Parameters for -75E (CL = 2)
+    parameter tCK              =     7.5; // tCK    ns    Nominal Clock Cycle Time
+    parameter tDQSQ            =     0.5; // tDQSQ  ns    DQS-DQ skew, DQS to last DQ valid, per group, per access
+    parameter tMRD             =    15.0; // tMRD   ns    Load Mode Register command cycle time
+    parameter tRAP             =    15.0; // tRAP   ns    ACTIVE to READ with Auto precharge command
+    parameter tRAS             =    40.0; // tRAS   ns    Active to Precharge command time
+    parameter tRC              =    60.0; // tRC    ns    Active to Active/Auto Refresh command time
+    parameter tRFC             =    75.0; // tRFC   ns    Refresh to Refresh Command interval time
+    parameter tRCD             =    15.0; // tRCD   ns    Active to Read/Write command time
+    parameter tRP              =    15.0; // tRP    ns    Precharge command period
+    parameter tRRD             =    15.0; // tRRD   ns    Active bank a to Active bank b command time
+    parameter tWR              =    15.0; // tWR    ns    Write recovery time
+`else `ifdef sg75Z                        //              Timing Parameters for -75Z (CL = 2)
+    parameter tCK              =     7.5; // tCK    ns    Nominal Clock Cycle Time
+    parameter tDQSQ            =     0.5; // tDQSQ  ns    DQS-DQ skew, DQS to last DQ valid, per group, per access
+    parameter tMRD             =    15.0; // tMRD   ns    Load Mode Register command cycle time
+    parameter tRAP             =    20.0; // tRAP   ns    ACTIVE to READ with Auto precharge command
+    parameter tRAS             =    40.0; // tRAS   ns    Active to Precharge command time
+    parameter tRC              =    65.0; // tRC    ns    Active to Active/Auto Refresh command time
+    parameter tRFC             =    75.0; // tRFC   ns    Refresh to Refresh Command interval time
+    parameter tRCD             =    20.0; // tRCD   ns    Active to Read/Write command time
+    parameter tRP              =    20.0; // tRP    ns    Precharge command period
+    parameter tRRD             =    15.0; // tRRD   ns    Active bank a to Active bank b command time
+    parameter tWR              =    15.0; // tWR    ns    Write recovery time
+`else `define sg75                        //              Timing Parameters for -75 (CL = 2.5)
+    parameter tCK              =     7.5; // tCK    ns    Nominal Clock Cycle Time
+    parameter tDQSQ            =     0.5; // tDQSQ  ns    DQS-DQ skew, DQS to last DQ valid, per group, per access
+    parameter tMRD             =    15.0; // tMRD   ns    Load Mode Register command cycle time
+    parameter tRAP             =    20.0; // tRAP   ns    ACTIVE to READ with Auto precharge command
+    parameter tRAS             =    40.0; // tRAS   ns    Active to Precharge command time
+    parameter tRC              =    65.0; // tRC    ns    Active to Active/Auto Refresh command time
+    parameter tRFC             =    75.0; // tRFC   ns    Refresh to Refresh Command interval time
+    parameter tRCD             =    20.0; // tRCD   ns    Active to Read/Write command time
+    parameter tRP              =    20.0; // tRP    ns    Precharge command period
+    parameter tRRD             =    15.0; // tRRD   ns    Active bank a to Active bank b command time
+    parameter tWR              =    15.0; // tWR    ns    Write recovery time
+`endif `endif `endif `endif `endif
+
 
     // Port Declarations
     input                         Clk;

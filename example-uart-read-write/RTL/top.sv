@@ -1,6 +1,13 @@
-`timescale 1 ns/1 ns
 
-module top(
+//--------------------------------------------------------------------------------------------------------
+// Module  : top
+// Type    : synthesizable, FPGA's top, IP's example design
+// Standard: SystemVerilog 2005 (IEEE1800-2005)
+// Function: an example of ddr_sdram_ctrl,
+//           use UART command to read/write DDR
+//--------------------------------------------------------------------------------------------------------
+
+module top (
     input  wire        clk50m,
     
     output wire        uart_tx,
@@ -114,7 +121,7 @@ ddr_sdram_ctrl #(
     .tW2I        ( 8'd7        ),
     .tR2I        ( 8'd7        )
 ) ddr_ctrl_i(
-    .rstn        ( rstn        ),
+    .rstn_async  ( rstn        ),
     .clk         ( clk300m     ),
     .aresetn     ( aresetn     ),
     .aclk        ( aclk        ),

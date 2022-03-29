@@ -1,6 +1,14 @@
-`timescale 1 ns/1 ns
 
-module top(
+//--------------------------------------------------------------------------------------------------------
+// Module  : top
+// Type    : synthesizable, FPGA's top, IP's example design
+// Standard: SystemVerilog 2005 (IEEE1800-2005)
+// Function: an example of ddr_sdram_ctrl,
+//           write increase data to DDR,
+//           then read data and check whether they are increasing
+//--------------------------------------------------------------------------------------------------------
+
+module top (
     input  wire        clk50m,
 
     output wire        ddr_ck_p, ddr_ck_n,
@@ -75,8 +83,8 @@ pll pll_i(
 //   meta AXI4 master for testing
 // -------------------------------------------------------------------------------------
 axi_self_test_master #(
-    .A_WIDTH     ( A_WIDTH     ),
     .A_WIDTH_TEST( A_WIDTH     ),
+    .A_WIDTH     ( A_WIDTH     ),
     .D_WIDTH     ( D_WIDTH     ),
     .D_LEVEL     ( DQ_LEVEL    ),
     .WBURST_LEN  ( 8'd15       ),
@@ -119,7 +127,7 @@ ddr_sdram_ctrl #(
     .tW2I        ( 8'd7        ),
     .tR2I        ( 8'd7        )
 ) ddr_ctrl_i(
-    .rstn        ( rstn        ),
+    .rstn_async  ( rstn        ),
     .clk         ( clk300m     ),
     .aresetn     ( aresetn     ),
     .aclk        ( aclk        ),

@@ -1,4 +1,10 @@
-`timescale 1 ns/1 ns
+
+//--------------------------------------------------------------------------------------------------------
+// Module  : uart2axi4
+// Type    : synthesizable
+// Standard: SystemVerilog 2005 (IEEE1800-2005)
+// Function: convert UART command to AXI4 read/write action
+//--------------------------------------------------------------------------------------------------------
 
 module uart2axi4 #(
     parameter  A_WIDTH    = 26,
@@ -263,3 +269,232 @@ always @ (posedge clk)
         mem[wr_addr] <= wr_data;
 
 endmodule
+
+
+
+
+
+
+
+
+
+
+module uart_rx #(
+    parameter CLK_DIV       = 108,  // UART baud rate = clk freq/(4*CLK_DIV)
+                                    // modify CLK_DIV to change the UART baud
+                                    // for example, when clk=50MHz, CLK_DIV=108, then baud=100MHz/(4*108)=115200
+                                    // 115200 is a typical baud rate for UART
+    parameter CLK_PART      = 4     // from 0 to 7
+) (
+    input  wire        clk, rstn,
+    // uart rx input
+    input  wire        rx,
+    // user interface
+    output wire        rvalid,
+    output wire [7:0]  rdata
+);
+
+reg        done = 1'b0;
+reg [ 7:0] data = 8'h0;
+reg [ 2:0] supercnt=3'h0;
+reg [31:0] cnt = 0;
+reg [ 7:0] databuf = 8'h0;
+reg [ 5:0] status=6'h0, shift=6'h0;
+reg rxr=1'b1;
+wire recvbit = (shift[1]&shift[0]) | (shift[0]&rxr) | (rxr&shift[1]) ;
+wire [2:0] supercntreverse = {supercnt[0], supercnt[1], supercnt[2]};
+
+assign rvalid = done;
+assign rdata  = data;
+
+always @ (posedge clk or negedge rstn)
+    if(~rstn)
+        rxr <= 1'b1;
+    else
+        rxr <= rx;
+
+always @ (posedge clk or negedge rstn)
+    if(~rstn) begin
+        done    <= 1'b0;
+        data    <= 8'h0;
+        status  <= 6'h0;
+        shift   <= 6'h0;
+        databuf <= 8'h0;
+        cnt     <= 0;
+    end else begin
+        done <= 1'b0;
+        if( (supercntreverse<CLK_PART) ? (cnt>=CLK_DIV) : (cnt>=CLK_DIV-1) ) begin
+            if(status==0) begin
+                if(shift == 6'b111_000)
+                    status <= 1;
+            end else begin
+                if(status[5] == 1'b0) begin
+                    if(status[1:0] == 2'b11)
+                        databuf <= {recvbit, databuf[7:1]};
+                    status <= status + 5'b1;
+                end else begin
+                    if(status<62) begin
+                        status <= 62;
+                        data <= databuf;
+                        done <= 1'b1;
+                    end else begin
+                        status <= status + 6'd1;
+                    end
+                end
+            end
+            shift <= {shift[4:0], rxr};
+            supercnt <= supercnt + 3'h1;
+            cnt <= 0;
+        end else
+            cnt <= cnt + 1;
+    end
+
+endmodule
+
+
+
+
+
+
+
+
+
+
+module axis2uarttx #(
+    parameter CLK_DIV    = 434,
+    parameter DATA_WIDTH = 32,
+    parameter FIFO_ASIZE = 8
+) (
+    // AXI-stream (slave) side
+    input  logic aclk, aresetn,
+    input  logic tvalid, tlast,
+    output logic tready,
+    input  logic [DATA_WIDTH-1:0] tdata,
+    // UART TX signal
+    output logic uart_tx
+);
+localparam TX_WIDTH = (DATA_WIDTH+3) / 4;
+
+function automatic logic [7:0] hex2ascii (input [3:0] hex);
+    return {4'h3, hex} + ((hex<4'hA) ? 8'h0 : 8'h7) ;
+endfunction
+
+logic uart_txb;
+logic [FIFO_ASIZE-1:0] fifo_rpt='0, fifo_wpt='0;
+wire  [FIFO_ASIZE-1:0] fifo_wpt_next = fifo_wpt + {{(FIFO_ASIZE-1){1'b0}}, 1'b1};
+wire  [FIFO_ASIZE-1:0] fifo_rpt_next = fifo_rpt + {{(FIFO_ASIZE-1){1'b0}}, 1'b1};
+logic [31:0] cyccnt=0, hexcnt=0, txcnt=0;
+logic [ 7:0] txshift = '1;
+logic fifo_tlast;
+logic [DATA_WIDTH-1:0] fifo_data;
+logic endofline = 1'b0;
+logic [TX_WIDTH*4-1:0] data='0;
+wire  emptyn = (fifo_rpt != fifo_wpt);
+assign  tready = (fifo_rpt != fifo_wpt_next) & aresetn;
+
+always @ (posedge aclk or negedge aresetn)
+    if(~aresetn)
+        uart_tx <= 1'b1;
+    else begin
+        uart_tx <= uart_txb;
+    end
+
+always @ (posedge aclk or negedge aresetn)
+    if(~aresetn)
+        fifo_wpt <= '0;
+    else begin
+        if(tvalid & tready) fifo_wpt <= fifo_wpt_next;
+    end
+
+always @ (posedge aclk or negedge aresetn)
+    if(~aresetn)
+        cyccnt <= 0;
+    else
+        cyccnt <= (cyccnt<CLK_DIV-1) ? cyccnt+1 : 0;
+
+always @ (posedge aclk or negedge aresetn)
+    if(~aresetn) begin
+        fifo_rpt  <= '0;
+        endofline <= 1'b0;
+        data      <= '0;
+        uart_txb  <= 1'b1;
+        txshift   <= '1;
+        txcnt     <= 0;
+        hexcnt    <= 0;
+    end else begin
+        if( hexcnt>(1+TX_WIDTH) ) begin
+            uart_txb  <= 1'b1;
+            endofline <= fifo_tlast;
+            data                 <= '0;
+            data[DATA_WIDTH-1:0] <= fifo_data;
+            hexcnt <= hexcnt-1;
+        end else if(hexcnt>0 || txcnt>0) begin
+            if(cyccnt==CLK_DIV-1) begin
+                if(txcnt>0) begin
+                    {txshift, uart_txb} <= {1'b1, txshift};
+                    txcnt <= txcnt-1;
+                end else begin
+                    uart_txb <= 1'b0;
+                    hexcnt <= hexcnt-1;
+                    if(hexcnt>1)
+                        txshift <= hex2ascii(data[(hexcnt-2)*4+:4]);
+                    else if(endofline)
+                        txshift <= 8'h0A;
+                    else
+                        txshift <= 8'h20;
+                    txcnt <= 11;
+                end
+            end
+        end else if(emptyn) begin
+            uart_txb <= 1'b1;
+            hexcnt   <= 2 + TX_WIDTH;
+            txcnt    <= 0;
+            fifo_rpt <= fifo_rpt_next;
+        end
+    end
+
+ram_for_axi_stream_to_uart_tx_fifo #(
+    .ADDR_LEN  ( FIFO_ASIZE             ),
+    .DATA_LEN  ( DATA_WIDTH + 1         )
+) ram_for_uart_tx_fifo_inst (
+    .clk       ( aclk                   ),
+    .wr_req    ( tvalid & tready        ),
+    .wr_addr   ( fifo_wpt               ),
+    .wr_data   ( {tlast, tdata}         ),
+    .rd_addr   ( fifo_rpt               ),
+    .rd_data   ( {fifo_tlast,fifo_data} )
+);
+
+endmodule
+
+
+
+
+
+
+module ram_for_axi_stream_to_uart_tx_fifo #(
+    parameter ADDR_LEN = 12,
+    parameter DATA_LEN = 8
+) (
+    input  logic clk,
+    input  logic wr_req,
+    input  logic [ADDR_LEN-1:0] rd_addr, wr_addr,
+    output logic [DATA_LEN-1:0] rd_data,
+    input  logic [DATA_LEN-1:0] wr_data
+);
+
+localparam  RAM_SIZE = (1<<ADDR_LEN);
+
+logic [DATA_LEN-1:0] mem [RAM_SIZE];
+
+initial rd_data = 0;
+
+always @ (posedge clk)
+    rd_data <= mem[rd_addr];
+
+always @ (posedge clk)
+    if(wr_req)
+        mem[wr_addr] <= wr_data;
+
+endmodule
+

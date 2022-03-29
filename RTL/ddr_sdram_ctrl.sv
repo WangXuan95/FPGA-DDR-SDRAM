@@ -1,4 +1,11 @@
-`timescale 1 ns/1 ns
+
+//--------------------------------------------------------------------------------------------------------
+// Module  : ddr_sdram_ctrl
+// Type    : synthesizable, IP's top
+// Standard: SystemVerilog 2005 (IEEE1800-2005)
+// Function: DDR-SDRAM (DDR1) controller
+//           with AXI4 interface
+//--------------------------------------------------------------------------------------------------------
 
 module ddr_sdram_ctrl #(
     parameter   READ_BUFFER   = 1,
@@ -14,9 +21,9 @@ module ddr_sdram_ctrl #(
     parameter [7:0] tR2I      = 8'd7
 ) (
     // driving clock and reset
-    input  wire                                           rstn,
+    input  wire                                           rstn_async,
     input  wire                                           clk,      // driving clock, typically 300~532MHz
-    // user interface ( meta AXI4 )
+    // user interface ( AXI4 )
     output reg                                            aresetn,
     output reg                                            aclk,     // freq = F(clk)/4
     input  wire                                           awvalid,
@@ -53,17 +60,16 @@ module ddr_sdram_ctrl #(
 
 localparam DQS_BITS = ((1<<DQ_LEVEL)+1)/2;
 
-reg        clk2;
-reg        init_done;
-reg  [2:0] ref_idle, ref_real;
-reg  [9:0] ref_cnt;
-reg  [7:0] cnt;
-enum logic [3:0] {RESET, IDLE, CLEARDLL, REFRESH, WPRE, WRITE, WRESP, WWAIT, RPRE, READ, RRESP, RWAIT} stat;
+reg        clk2 = '0;
+reg        init_done = '0;
+reg  [2:0] ref_idle = 3'd1, ref_real = '0;
+reg  [9:0] ref_cnt = '0;
+reg  [7:0] cnt = '0;
+enum logic [3:0] {RESET, IDLE, CLEARDLL, REFRESH, WPRE, WRITE, WRESP, WWAIT, RPRE, READ, RRESP, RWAIT} stat = RESET;
 
-reg  [7:0] burst_len;
+reg  [7:0] burst_len = '0;
 wire       burst_last = cnt==burst_len;
-reg  [DQ_LEVEL-1:0] trash_lsb_addr;
-reg  [COL_BITS-2:0] col_addr;
+reg  [COL_BITS-2:0] col_addr = '0;
 
 wire [ROW_BITS-1:0] ddr_a_col;
 generate if(COL_BITS>10) begin
@@ -73,55 +79,77 @@ end else begin
 end endgenerate
 
 wire read_accessible, read_respdone;
-reg  output_enable, output_enable_d1, output_enable_d2;
+reg  output_enable='0, output_enable_d1='0, output_enable_d2='0;
 
-reg                      o_v_a;
-reg  [(4<<DQ_LEVEL)-1:0] o_dh_a;
-reg  [(4<<DQ_LEVEL)-1:0] o_dl_a;
-reg                      o_v_b;
-reg  [(4<<DQ_LEVEL)-1:0] o_dh_b;
-reg                      o_dqs_c;
-reg  [(4<<DQ_LEVEL)-1:0] o_d_c;
-reg  [(4<<DQ_LEVEL)-1:0] o_d_d;
+reg                      o_v_a = '0;
+reg  [(4<<DQ_LEVEL)-1:0] o_dh_a = '0;
+reg  [(4<<DQ_LEVEL)-1:0] o_dl_a = '0;
+reg                      o_v_b = '0;
+reg  [(4<<DQ_LEVEL)-1:0] o_dh_b = '0;
+reg                      o_dqs_c = '0;
+reg  [(4<<DQ_LEVEL)-1:0] o_d_c = '0;
+reg  [(4<<DQ_LEVEL)-1:0] o_d_d = '0;
 
-reg                      i_v_a;
-reg                      i_l_a;
-reg                      i_v_b;
-reg                      i_l_b;
-reg                      i_v_c;
-reg                      i_l_c;
-reg                      i_dqs_c;
-reg  [(4<<DQ_LEVEL)-1:0] i_d_c;
-reg                      i_v_d;
-reg                      i_l_d;
-reg  [(8<<DQ_LEVEL)-1:0] i_d_d;
-reg                      i_v_e;
-reg                      i_l_e;
-reg  [(8<<DQ_LEVEL)-1:0] i_d_e;
+reg                      i_v_a = '0;
+reg                      i_l_a = '0;
+reg                      i_v_b = '0;
+reg                      i_l_b = '0;
+reg                      i_v_c = '0;
+reg                      i_l_c = '0;
+reg                      i_dqs_c = '0;
+reg  [(4<<DQ_LEVEL)-1:0] i_d_c = '0;
+reg                      i_v_d = '0;
+reg                      i_l_d = '0;
+reg  [(8<<DQ_LEVEL)-1:0] i_d_d = '0;
+reg                      i_v_e = '0;
+reg                      i_l_e = '0;
+reg  [(8<<DQ_LEVEL)-1:0] i_d_e = '0;
 
 // -------------------------------------------------------------------------------------
 //   constants defination and assignment
 // -------------------------------------------------------------------------------------
-reg [ROW_BITS-1:0] DDR_A_DEFAULT, DDR_A_MR0, DDR_A_MR_CLEAR_DLL;
-always_comb begin
-    DDR_A_DEFAULT = '0;
-    DDR_A_MR0 = '0;
-    DDR_A_MR_CLEAR_DLL = '0;
-    DDR_A_DEFAULT[10] = 1'b1;
-    DDR_A_MR0[0] = 1'b1;
-    DDR_A_MR0[3] = 1'b1;
-    DDR_A_MR0[5] = 1'b1;
-    DDR_A_MR0[8] = 1'b1;
-    DDR_A_MR_CLEAR_DLL[0] = 1'b1;
-    DDR_A_MR_CLEAR_DLL[3] = 1'b1;
-    DDR_A_MR_CLEAR_DLL[5] = 1'b1;
-end
+localparam [ROW_BITS-1:0] DDR_A_DEFAULT      = (ROW_BITS)'('b0100_0000_0000);
+localparam [ROW_BITS-1:0] DDR_A_MR0          = (ROW_BITS)'('b0001_0010_1001);
+localparam [ROW_BITS-1:0] DDR_A_MR_CLEAR_DLL = (ROW_BITS)'('b0000_0010_1001);
+
+
+initial ddr_cs_n = 1'b1;
+initial ddr_ras_n = 1'b1;
+initial ddr_cas_n = 1'b1;
+initial ddr_we_n = 1'b1;
+initial ddr_ba = '0;
+initial ddr_a = DDR_A_DEFAULT;
+
+initial {aresetn, aclk} = '0;
+
+
+// -------------------------------------------------------------------------------------
+// generate reset sync with clk
+// -------------------------------------------------------------------------------------
+reg       rstn_clk   = '0;
+reg [1:0] rstn_clk_l = '0;
+always @ (posedge clk or negedge rstn_async)
+    if(~rstn_async)
+        {rstn_clk, rstn_clk_l} <= '0;
+    else
+        {rstn_clk, rstn_clk_l} <= {rstn_clk_l, 1'b1};
+
+// -------------------------------------------------------------------------------------
+// generate reset sync with aclk
+// -------------------------------------------------------------------------------------
+reg       rstn_aclk   = '0;
+reg [1:0] rstn_aclk_l = '0;
+always @ (posedge aclk or negedge rstn_async)
+    if(~rstn_async)
+        {rstn_aclk, rstn_aclk_l} <= '0;
+    else
+        {rstn_aclk, rstn_aclk_l} <= {rstn_aclk_l, 1'b1};
 
 // -------------------------------------------------------------------------------------
 //   generate clocks
 // -------------------------------------------------------------------------------------
-always @ (posedge clk or negedge rstn)
-    if(~rstn)
+always @ (posedge clk or negedge rstn_clk)
+    if(~rstn_clk)
         {aclk,clk2} <= 2'b00;
     else
         {aclk,clk2} <= {aclk,clk2} + 2'b01;
@@ -129,8 +157,8 @@ always @ (posedge clk or negedge rstn)
 // -------------------------------------------------------------------------------------
 //   generate user reset
 // -------------------------------------------------------------------------------------
-always @ (posedge aclk or negedge rstn)
-    if(~rstn)
+always @ (posedge aclk or negedge rstn_aclk)
+    if(~rstn_aclk)
         aresetn <= 1'b0;
     else
         aresetn <= init_done;
@@ -138,8 +166,8 @@ always @ (posedge aclk or negedge rstn)
 // -------------------------------------------------------------------------------------
 //   refresh wptr self increasement
 // -------------------------------------------------------------------------------------
-always @ (posedge aclk or negedge rstn)
-    if(~rstn) begin
+always @ (posedge aclk or negedge rstn_aclk)
+    if(~rstn_aclk) begin
         ref_cnt <= '0;
         ref_idle <= 3'd1;
     end else begin
@@ -178,8 +206,8 @@ assign arready = stat==IDLE && init_done && ref_real==ref_idle && ~awvalid && re
 // -------------------------------------------------------------------------------------
 //   main FSM for generating DDR-SDRAM behavior
 // -------------------------------------------------------------------------------------
-always @ (posedge aclk or negedge rstn)
-    if(~rstn) begin
+always @ (posedge aclk or negedge rstn_aclk)
+    if(~rstn_aclk) begin
         ddr_cs_n <= 1'b1;
         ddr_ras_n <= 1'b1;
         ddr_cas_n <= 1'b1;
@@ -231,18 +259,12 @@ always @ (posedge aclk or negedge rstn)
                     stat <= CLEARDLL;
                 end else if(awvalid) begin
                     ddr_ras_n <= 1'b0;
-                    if(DQ_LEVEL>0)
-                        {ddr_ba, ddr_a, col_addr, trash_lsb_addr} <= awaddr;
-                    else
-                        {ddr_ba, ddr_a, col_addr} <= awaddr;
+                    {ddr_ba, ddr_a, col_addr} <= awaddr[BA_BITS+ROW_BITS+COL_BITS+DQ_LEVEL-2:DQ_LEVEL];
                     burst_len <= awlen;
                     stat <= WPRE;
                 end else if(arvalid & read_accessible) begin
                     ddr_ras_n <= 1'b0;
-                    if(DQ_LEVEL>0)
-                        {ddr_ba, ddr_a, col_addr, trash_lsb_addr} <= araddr;
-                    else
-                        {ddr_ba, ddr_a, col_addr} <= araddr;
+                    {ddr_ba, ddr_a, col_addr} <= araddr[BA_BITS+ROW_BITS+COL_BITS+DQ_LEVEL-2:DQ_LEVEL];
                     burst_len <= arlen;
                     stat <= RPRE;
                 end
@@ -388,7 +410,7 @@ always @ (posedge aclk or negedge aresetn)
 // -------------------------------------------------------------------------------------
 //   dq and dqs generate for output (write)
 // -------------------------------------------------------------------------------------
-always @ (posedge clk2) begin
+always @ (posedge clk2)
     if(~aclk) begin
         o_dqs_c <= 1'b0;
         o_d_c <= o_v_a ? o_dl_a : '0;
@@ -396,7 +418,6 @@ always @ (posedge clk2) begin
         o_dqs_c <= o_v_b;
         o_d_c <= o_v_b ? o_dh_b : '0;
     end
-end
 
 // -------------------------------------------------------------------------------------
 //   dq delay for output (write)
@@ -446,20 +467,60 @@ always @ (posedge aclk or negedge aresetn)
 //   data buffer for read
 // -------------------------------------------------------------------------------------
 generate if(READ_BUFFER) begin
-    SyncFIFO #(
-        .AWIDTH   ( 10                ),
-        .DWIDTH   ( 1 + (8<<DQ_LEVEL) )
-    ) read_buffer_i (
-        .rstn     ( aresetn           ),
-        .clk      ( aclk              ),
-        .emptyn   (                   ),
-        .itvalid  ( i_v_e             ),
-        .itready  (                   ),
-        .itdata   ( {i_l_e, i_d_e}    ),
-        .otvalid  ( rvalid            ),
-        .otready  ( rready            ),
-        .otdata   ( {rlast, rdata}    )
-    );
+
+    localparam AWIDTH = 10;
+    localparam DWIDTH = 1 + (8<<DQ_LEVEL);
+    
+    reg  [AWIDTH-1:0] wpt = '0, rpt = '0;
+    reg               dvalid = '0, valid = '0;
+    reg  [DWIDTH-1:0] datareg = '0;
+
+    wire              rreq;
+    reg  [DWIDTH-1:0] fifo_rdata;
+
+    wire   emptyn  = rpt != wpt;
+
+    wire   itready = rpt != (wpt + (AWIDTH)'(1));
+    assign rvalid  = valid | dvalid;
+    assign rreq    = emptyn & ( rready | ~rvalid );
+    assign {rlast, rdata} = dvalid ? fifo_rdata : datareg;
+
+    always @ (posedge aclk or negedge aresetn)
+        if(~aresetn)
+            wpt <= 0;
+        else if(i_v_e & itready)
+            wpt <= wpt + (AWIDTH)'(1);
+        
+    always @ (posedge aclk or negedge aresetn)
+        if(~aresetn)
+            rpt <= 0;
+        else if(rreq & emptyn)
+            rpt <= rpt + (AWIDTH)'(1);
+
+    always @ (posedge aclk or negedge aresetn)
+        if(~aresetn) begin
+            dvalid <= 1'b0;
+            valid  <= 1'b0;
+            datareg <= 0;
+        end else begin
+            dvalid <= rreq;
+            if(dvalid)
+                datareg <= fifo_rdata;
+            if(rready)
+                valid <= 1'b0;
+            else if(dvalid)
+                valid <= 1'b1;
+        end
+
+    reg [DWIDTH-1:0] mem [(1<<AWIDTH)];
+
+    always @ (posedge aclk)
+        if(i_v_e)
+            mem[wpt] <= {i_l_e, i_d_e};
+
+    always @ (posedge aclk)
+        fifo_rdata <= mem[rpt];
+    
     assign read_accessible = ~rvalid;
     assign read_respdone = rvalid;
 end else begin
@@ -469,125 +530,5 @@ end else begin
     assign read_accessible = 1'b1;
     assign read_respdone = i_l_e;
 end endgenerate
-
-endmodule
-
-
-
-
-
-
-
-
-
-
-
-// --------------------------------------------------------------------------
-//   Simple stream-FIFO
-// --------------------------------------------------------------------------
-module SyncFIFO #(
-    parameter   AWIDTH = 10,
-    parameter   DWIDTH = 8
-)(
-    input  wire              rstn,
-    input  wire              clk,
-	 
-    output wire              emptyn,
-    
-    input  wire              itvalid,
-    output wire              itready,
-    input  wire [DWIDTH-1:0] itdata,
-    
-    output wire              otvalid,
-    input  wire              otready,
-    output wire [DWIDTH-1:0] otdata
-);
-
-localparam [AWIDTH-1:0] ONE = 1;
-reg  [AWIDTH-1:0] wpt, rpt;
-reg               dvalid, valid;
-reg  [DWIDTH-1:0] datareg;
-
-wire              rreq;
-wire [DWIDTH-1:0] rdata;
-
-assign           emptyn = rpt != wpt;
-
-assign itready = rpt != (wpt+1);
-assign otvalid = valid | dvalid;
-assign rreq    = emptyn & ( otready | ~otvalid );
-assign otdata  = dvalid ? rdata : datareg;
-
-always @ (posedge clk or negedge rstn)
-    if(~rstn)
-        wpt <= 0;
-    else if(itvalid & itready)
-        wpt <= wpt + ONE;
-    
-always @ (posedge clk or negedge rstn)
-    if(~rstn)
-        rpt <= 0;
-    else if(rreq & emptyn)
-        rpt <= rpt + ONE;
-
-always @ (posedge clk or negedge rstn)
-    if(~rstn) begin
-        dvalid <= 1'b0;
-        valid  <= 1'b0;
-        datareg <= 0;
-    end else begin
-        dvalid <= rreq;
-        if(dvalid)
-            datareg <= rdata;
-        if(otready)
-            valid <= 1'b0;
-        else if(dvalid)
-            valid <= 1'b1;
-    end
-
-SyncRAM #(
-    .DWIDTH   ( DWIDTH     ),
-    .AWIDTH   ( AWIDTH     )
-) ram_for_fifo (
-    .clk      ( clk        ),
-    .wen      ( itvalid    ),
-    .waddr    ( wpt        ),
-    .wdata    ( itdata     ),
-    .raddr    ( rpt        ),
-    .rdata    ( rdata      )
-);
-
-endmodule
-
-
-
-
-
-
-
-
-// --------------------------------------------------------------------------
-//   Simple Dual Port RAM
-// --------------------------------------------------------------------------
-module SyncRAM #(
-    parameter  AWIDTH   = 10,
-    parameter  DWIDTH   = 32
-)(
-    input  logic               clk,
-    input  logic               wen,
-    input  logic [AWIDTH-1:0]  waddr,
-    input  logic [DWIDTH-1:0]  wdata,
-    input  logic [AWIDTH-1:0]  raddr,
-    output logic [DWIDTH-1:0]  rdata
-);
-
-reg [DWIDTH-1:0] mem [(1<<AWIDTH)];
-
-always @ (posedge clk)
-    if(wen)
-        mem[waddr] <= wdata;
-
-always @ (posedge clk)
-    rdata <= mem[raddr];
 
 endmodule
