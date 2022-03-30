@@ -10,11 +10,23 @@
 
 module tb_ddr_sdram_ctrl();
 
+// -------------------------------------------------------------------------------------
+//   self test error signal, 1'b1 indicates error
+// -------------------------------------------------------------------------------------
+wire               error;
+
 // -----------------------------------------------------------------------------------------------------------------------------
 // simulation control
 // -----------------------------------------------------------------------------------------------------------------------------
 initial $dumpvars(0, tb_ddr_sdram_ctrl);
-initial #200000000 $finish;              // simulation for 200us
+initial begin
+    #200000000;              // simulation for 200us
+    if(error)
+        $display("*** Error: there are mismatch when read out and compare!!! see wave for detail.");
+    else
+        $display("validation successful !!");
+    $finish;
+end
 
 // -------------------------------------------------------------------------------------
 //   DDR-SDRAM parameters
@@ -23,6 +35,7 @@ localparam  BA_BITS  = 2;
 localparam  ROW_BITS = 13;
 localparam  COL_BITS = 11;
 localparam  DQ_LEVEL = 1;
+
 localparam  DQ_BITS  = (4<<DQ_LEVEL);
 localparam  DQS_BITS = ((1<<DQ_LEVEL)+1)/2;
 
@@ -80,11 +93,6 @@ wire               rvalid;
 wire               rready;
 wire               rlast;
 wire [D_WIDTH-1:0] rdata;
-
-// -------------------------------------------------------------------------------------
-//   self test error signal, 1'b1 indicates error
-// -------------------------------------------------------------------------------------
-wire               error;
 
 // -------------------------------------------------------------------------------------
 //   meta AXI4 master for testing
@@ -173,7 +181,12 @@ ddr_sdram_ctrl #(
 // -------------------------------------------------------------------------------------
 //  MICRON DDR-SDRAM simulation model
 // -------------------------------------------------------------------------------------
-micron_ddr_sdram_model ddr_model_i (
+micron_ddr_sdram_model #(
+    .BA_BITS     ( BA_BITS     ),
+    .ROW_BITS    ( ROW_BITS    ),
+    .COL_BITS    ( COL_BITS    ),
+    .DQ_LEVEL    ( DQ_LEVEL    )
+) ddr_model_i (
     .Clk         ( ddr_ck_p    ),
     .Clk_n       ( ddr_ck_n    ),
     .Cke         ( ddr_cke     ),

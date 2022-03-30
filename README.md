@@ -409,7 +409,7 @@ AXI4 总线的地址（awaddr和araddr）统一是字节地址，模块会根据
 | :---- | :--- |
 | tb_ddr_sdram_ctrl.sv | 仿真顶层 |
 | axi_self_test_master.sv | 是 AXI4 主机，通过 AXI4 先把有规律的数据写入 DDR1，然后读回，比较读回的数据是否符合规律，并对不匹配的情况进行计数。 |
-| micron_ddr_sdram_model.v | [MICRON 公司提供的 DDR1 仿真模型](https://www.micron.com/products/dram/ddr-sdram/part-catalog/mt46v64m8p-5b) |
+| micron_ddr_sdram_model.sv | [MICRON 公司提供的 DDR1 仿真模型](https://www.micron.com/products/dram/ddr-sdram/part-catalog/mt46v64m8p-5b) |
 
 该仿真工程的行为和自测程序一样， axi_self_test_master.sv 作为 AXI4 主机，将有规律的数据写入 DDR1 中，只不过不是全部写入，而是只写入 DDR1 的前 16KB （因为仿真模型的存储空间有限），然后一轮一轮地反复读出数据，比较是否有不匹配的数据，若有，则在 error 信号上产生一个时钟周期的高电平。
 
@@ -421,23 +421,19 @@ AXI4 总线的地址（awaddr和araddr）统一是字节地址，模块会根据
 
 ## 修改仿真参数
 
-以上仿真默认配置的参数是使用 MT46V64M8 ，即 ROW_BITS=13，COL_BITS=11，DQ_BITS=8。
+以上仿真默认配置的参数是使用 MT46V64M8 ，即 ROW_BITS=13，COL_BITS=11，DQ_BITS=8 。如果想对其它型号的 DDR1 芯片进行仿真，你需要在 tb_ddr_sdram_ctrl.sv 里修改它们。对于 MICRON 公司的 DDR1 系列，这些参数应该这样修改：
 
-如果想对其它型号的 DDR1 芯片进行仿真，你需要在 tb_ddr_sdram_ctrl.sv 和 micron_ddr_sdram_model.v 里修改它们（注意两个文件要同步修改！）
-
-对于 MICRON 公司的 DDR1 系列，这些参数应该这样修改：
-
-| 芯片名称 | BA_BITS | ROW_BITS | COL_BITS | DQ_LEVEL | DQ_BITS
-| :--: | :--: | :--: | :--: | :--: | :--: |
-| MT46V64M4   | 2 | 13 | 11 | 0 | 4  |
-| MT46V128M4  | 2 | 13 | 12 | 0 | 4  |
-| MT46V256M4  | 2 | 14 | 12 | 0 | 4  |
-| MT46V32M8   | 2 | 13 | 10 | 1 | 8  |
-| MT46V64M8   | 2 | 13 | 11 | 1 | 8  |
-| MT46V128M8  | 2 | 14 | 11 | 1 | 8  |
-| MT46V16M16  | 2 | 13 | 9  | 2 | 16 |
-| MT46V32M16  | 2 | 13 | 10 | 2 | 16 |
-| MT46V64M16  | 2 | 14 | 10 | 2 | 16 |
+| 芯片名称 | BA_BITS | ROW_BITS | COL_BITS | DQ_LEVEL |
+| :--: | :--: | :--: | :--: | :--: |
+| MT46V64M4   | 2 | 13 | 11 | 0 |
+| MT46V128M4  | 2 | 13 | 12 | 0 |
+| MT46V256M4  | 2 | 14 | 12 | 0 |
+| MT46V32M8   | 2 | 13 | 10 | 1 |
+| MT46V64M8   | 2 | 13 | 11 | 1 |
+| MT46V128M8  | 2 | 14 | 11 | 1 |
+| MT46V16M16  | 2 | 13 | 9  | 2 |
+| MT46V32M16  | 2 | 13 | 10 | 2 |
+| MT46V64M16  | 2 | 14 | 10 | 2 |
 
 另外，你可以修改 tb_ddr_sdram_ctrl.sv 的第 18 和 19 行来修改仿真时的突发读写的长度。
 

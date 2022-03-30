@@ -1,11 +1,4 @@
 /****************************************************************************************
-*
-*    File Name:  ddr.v
-*      Version:  6.00
-*        Model:  BUS Functional
-*
-* Dependencies:  ddr_parameters.v
-*
 *  Description:  Micron SDRAM DDR (Double Data Rate)
 *
 *   Limitation:  - Doesn't check for 8K-cycle refresh.
@@ -78,23 +71,22 @@
 * 6.00  BAS    05/31/2007  - Updated 128Mb, 256Mb, 512Mb, and 1024Mb parameter sheets
 ****************************************************************************************/
 
-// DO NOT CHANGE THE TIMESCALE
-// MAKE SURE YOUR SIMULATOR USE "PS" RESOLUTION
+// DO NOT CHANGE THE TIMESCALE, MAKE SURE YOUR SIMULATOR USE "PS" RESOLUTION
 `timescale 1ps/1ps
 
-module micron_ddr_sdram_model (Clk, Clk_n, Cke, Cs_n, Ras_n, Cas_n, We_n, Ba , Addr, Dm, Dq, Dqs);
-
-`define sg5B
+module micron_ddr_sdram_model #(
+    parameter BA_BITS          =       2,
+    parameter ROW_BITS         =      13,
+    parameter COL_BITS         =      11,
+    parameter DQ_LEVEL         =       1
+) (
+    Clk, Clk_n, Cke, Cs_n, Ras_n, Cas_n, We_n, Ba , Addr, Dm, Dq, Dqs
+);
 
     parameter no_halt          =       1; // If set to 1, the model won't halt on command sequence/major errors
     parameter DEBUG            =       1; // Turn on DEBUG message
-
     
-    parameter BA_BITS          =       2; // Set this parmaeter to control how many Bank Address bits are used
-    parameter ROW_BITS         =      13; // Set this parameter to control how many Address bits are used
-    parameter COL_BITS         =      11; // Set this parameter to control how many Column bits are used
-    parameter DQ_BITS          =       8; // Set this parameter to control how many Data bits are used
-    
+    parameter DQ_BITS          =       4<<DQ_LEVEL;
     
     parameter ADDR_BITS        = ROW_BITS;
     
@@ -104,6 +96,8 @@ module micron_ddr_sdram_model (Clk, Clk_n, Cke, Cs_n, Ras_n, Cas_n, We_n, Ba , A
     
     parameter DQS_BITS         = (DQ_BITS + 4) / 8;
     parameter DM_BITS          = DQS_BITS;
+
+`define sg5B
 
 `ifdef sg5B                               //              Timing Parameters for -5B (CL = 3)
     parameter tCK              =     5.0; // tCK    ns    Nominal Clock Cycle Time
