@@ -40,13 +40,13 @@ localparam  DQ_BITS  = (4<<DQ_LEVEL);
 localparam  DQS_BITS = ((1<<DQ_LEVEL)+1)/2;
 
 // -------------------------------------------------------------------------------------
-//   meta AXI4 burst length parameters
+//   AXI4 burst length parameters
 // -------------------------------------------------------------------------------------
 localparam [7:0] WBURST_LEN = 8'd7;
 localparam [7:0] RBURST_LEN = 8'd7;
 
 // -------------------------------------------------------------------------------------
-//   meta AXI4 parameters
+//   AXI4 parameters
 // -------------------------------------------------------------------------------------
 localparam  A_WIDTH = BA_BITS+ROW_BITS+COL_BITS+DQ_LEVEL-1;
 localparam  D_WIDTH = (8<<DQ_LEVEL);
@@ -54,9 +54,9 @@ localparam  D_WIDTH = (8<<DQ_LEVEL);
 // -------------------------------------------------------------------------------------
 //   driving clock and reset generate
 // -------------------------------------------------------------------------------------
-reg rstn=1'b0, clk300m=1'b1;
+reg rstn_async=1'b0, clk300m=1'b1;
 always #1667 clk300m = ~clk300m;
-initial begin repeat(4) @(posedge clk300m); rstn<=1'b1; end
+initial begin repeat(4) @(posedge clk300m); rstn_async<=1'b1; end
 
 // -------------------------------------------------------------------------------------
 //   DDR-SDRAM signal
@@ -71,10 +71,10 @@ tri  [DQS_BITS-1:0] ddr_dqs;
 tri  [ DQ_BITS-1:0] ddr_dq;
 
 // -------------------------------------------------------------------------------------
-//   meta AXI4 interface
+//   AXI4 interface
 // -------------------------------------------------------------------------------------
-wire               aresetn;
-wire               aclk;
+wire               rstn;
+wire               clk;
 wire               awvalid;
 wire               awready;
 wire [A_WIDTH-1:0] awaddr;
@@ -95,7 +95,7 @@ wire               rlast;
 wire [D_WIDTH-1:0] rdata;
 
 // -------------------------------------------------------------------------------------
-//   meta AXI4 master for testing
+//   AXI4 master for testing
 // -------------------------------------------------------------------------------------
 axi_self_test_master #(
     .A_WIDTH_TEST( 12          ),
@@ -105,8 +105,8 @@ axi_self_test_master #(
     .WBURST_LEN  ( WBURST_LEN  ),
     .RBURST_LEN  ( RBURST_LEN  )
 ) axi_m_i (
-    .aresetn     ( aresetn     ),
-    .aclk        ( aclk        ),
+    .rstn        ( rstn        ),
+    .clk         ( clk         ),
     .awvalid     ( awvalid     ),
     .awready     ( awready     ),
     .awaddr      ( awaddr      ),
@@ -142,10 +142,10 @@ ddr_sdram_ctrl #(
     .tW2I        ( 8'd6        ),
     .tR2I        ( 8'd6        )
 ) ddr_sdram_ctrl_i (
-    .rstn_async  ( rstn        ),
-    .clk         ( clk300m     ),
-    .aresetn     ( aresetn     ),
-    .aclk        ( aclk        ),
+    .rstn_async  ( rstn_async  ),
+    .drv_clk     ( clk300m     ),
+    .rstn        ( rstn        ),
+    .clk         ( clk         ),
     .awvalid     ( awvalid     ),
     .awready     ( awready     ),
     .awaddr      ( awaddr      ),

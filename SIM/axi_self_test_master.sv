@@ -15,8 +15,8 @@ module axi_self_test_master #(
     parameter [7:0] WBURST_LEN   = 8'd7,
     parameter [7:0] RBURST_LEN   = 8'd7
 )(
-    input  wire               aresetn,
-    input  wire               aclk,
+    input  wire               rstn,
+    input  wire               clk,
     output wire               awvalid,
     input  wire               awready,
     output reg  [A_WIDTH-1:0] awaddr,
@@ -65,8 +65,8 @@ assign rready = 1'b1;
 
 wire [A_WIDTH:0] araddr_next = {1'b0,araddr} + (A_WIDTH+1)'(1<<D_LEVEL);
 
-always @ (posedge aclk or negedge aresetn)
-    if(~aresetn) begin
+always @ (posedge clk or negedge rstn)
+    if(~rstn) begin
         {awaddr_carry, awaddr} <= '0;
         w_cnt <= 8'd0;
         araddr <= '0;
@@ -110,8 +110,8 @@ always @ (posedge aclk or negedge aresetn)
 //  read and write mismatch detect
 // ------------------------------------------------------------
 wire [D_WIDTH-1:0] rdata_idle = (D_WIDTH)'(araddr);
-always @ (posedge aclk or negedge aresetn)
-    if(~aresetn) begin
+always @ (posedge clk or negedge rstn)
+    if(~rstn) begin
         error <= 1'b0;
         error_cnt <= 16'd0;
     end else begin

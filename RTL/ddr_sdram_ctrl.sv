@@ -22,10 +22,11 @@ module ddr_sdram_ctrl #(
 ) (
     // driving clock and reset
     input  wire                                           rstn_async,
-    input  wire                                           clk,      // driving clock, typically 300~532MHz
-    // user interface ( AXI4 )
-    output reg                                            aresetn,
-    output reg                                            aclk,     // freq = F(clk)/4
+    input  wire                                           drv_clk,  // driving clock, typically 300~532MHz
+    // generate clock for AXI4
+    output reg                                            rstn,
+    output reg                                            clk,      // freq = F(drv_clk)/4
+    // user interface (AXI4)
     input  wire                                           awvalid,
     output wire                                           awready,
     input  wire  [BA_BITS+ROW_BITS+COL_BITS+DQ_LEVEL-2:0] awaddr,   // byte address, not word address.
@@ -45,7 +46,7 @@ module ddr_sdram_ctrl #(
     output wire                                           rlast,
     output wire                       [(8<<DQ_LEVEL)-1:0] rdata,
     // DDR-SDRAM interface
-    output wire                                           ddr_ck_p, ddr_ck_n,  // freq = F(clk)/4
+    output wire                                           ddr_ck_p, ddr_ck_n,  // freq = F(drv_clk)/4
     output wire                                           ddr_cke,
     output reg                                            ddr_cs_n,
     output reg                                            ddr_ras_n,
@@ -120,26 +121,26 @@ initial ddr_we_n = 1'b1;
 initial ddr_ba = '0;
 initial ddr_a = DDR_A_DEFAULT;
 
-initial {aresetn, aclk} = '0;
+initial {rstn, clk} = '0;
 
 
 // -------------------------------------------------------------------------------------
-// generate reset sync with clk
+// generate reset sync with drv_clk
 // -------------------------------------------------------------------------------------
 reg       rstn_clk   = '0;
-reg [1:0] rstn_clk_l = '0;
-always @ (posedge clk or negedge rstn_async)
+reg [2:0] rstn_clk_l = '0;
+always @ (posedge drv_clk or negedge rstn_async)
     if(~rstn_async)
         {rstn_clk, rstn_clk_l} <= '0;
     else
         {rstn_clk, rstn_clk_l} <= {rstn_clk_l, 1'b1};
 
 // -------------------------------------------------------------------------------------
-// generate reset sync with aclk
+// generate reset sync with clk
 // -------------------------------------------------------------------------------------
 reg       rstn_aclk   = '0;
-reg [1:0] rstn_aclk_l = '0;
-always @ (posedge aclk or negedge rstn_async)
+reg [2:0] rstn_aclk_l = '0;
+always @ (posedge clk or negedge rstn_async)
     if(~rstn_async)
         {rstn_aclk, rstn_aclk_l} <= '0;
     else
@@ -148,25 +149,25 @@ always @ (posedge aclk or negedge rstn_async)
 // -------------------------------------------------------------------------------------
 //   generate clocks
 // -------------------------------------------------------------------------------------
-always @ (posedge clk or negedge rstn_clk)
+always @ (posedge drv_clk or negedge rstn_clk)
     if(~rstn_clk)
-        {aclk,clk2} <= 2'b00;
+        {clk,clk2} <= 2'b00;
     else
-        {aclk,clk2} <= {aclk,clk2} + 2'b01;
+        {clk,clk2} <= {clk,clk2} + 2'b01;
 
 // -------------------------------------------------------------------------------------
 //   generate user reset
 // -------------------------------------------------------------------------------------
-always @ (posedge aclk or negedge rstn_aclk)
+always @ (posedge clk or negedge rstn_aclk)
     if(~rstn_aclk)
-        aresetn <= 1'b0;
+        rstn <= 1'b0;
     else
-        aresetn <= init_done;
+        rstn <= init_done;
 
 // -------------------------------------------------------------------------------------
 //   refresh wptr self increasement
 // -------------------------------------------------------------------------------------
-always @ (posedge aclk or negedge rstn_aclk)
+always @ (posedge clk or negedge rstn_aclk)
     if(~rstn_aclk) begin
         ref_cnt <= '0;
         ref_idle <= 3'd1;
@@ -184,8 +185,8 @@ always @ (posedge aclk or negedge rstn_aclk)
 // -------------------------------------------------------------------------------------
 //   generate DDR clock
 // -------------------------------------------------------------------------------------
-assign ddr_ck_p = ~aclk;
-assign ddr_ck_n = aclk;
+assign ddr_ck_p = ~clk;
+assign ddr_ck_n = clk;
 assign ddr_cke = ~ddr_cs_n;
 
 // -------------------------------------------------------------------------------------
@@ -196,7 +197,7 @@ assign ddr_dqs = output_enable ? {DQS_BITS{o_dqs_c}} : 'z;
 assign ddr_dq  = output_enable ? o_d_d : 'z;
 
 // -------------------------------------------------------------------------------------
-//  assignment for user interface (meta AXI4 interface)
+//  assignment for user interface (AXI4)
 // -------------------------------------------------------------------------------------
 assign awready = stat==IDLE && init_done && ref_real==ref_idle;
 assign wready = stat==WRITE;
@@ -206,7 +207,7 @@ assign arready = stat==IDLE && init_done && ref_real==ref_idle && ~awvalid && re
 // -------------------------------------------------------------------------------------
 //   main FSM for generating DDR-SDRAM behavior
 // -------------------------------------------------------------------------------------
-always @ (posedge aclk or negedge rstn_aclk)
+always @ (posedge clk or negedge rstn_aclk)
     if(~rstn_aclk) begin
         ddr_cs_n <= 1'b1;
         ddr_ras_n <= 1'b1;
@@ -372,8 +373,8 @@ always @ (posedge aclk or negedge rstn_aclk)
 // -------------------------------------------------------------------------------------
 //   output enable generate
 // -------------------------------------------------------------------------------------
-always @ (posedge aclk or negedge aresetn)
-    if(~aresetn) begin
+always @ (posedge clk or negedge rstn)
+    if(~rstn) begin
         output_enable <= 1'b0;
         output_enable_d1 <= 1'b0;
         output_enable_d2 <= 1'b0;
@@ -386,8 +387,8 @@ always @ (posedge aclk or negedge aresetn)
 // -------------------------------------------------------------------------------------
 //   output data latches --- stage A
 // -------------------------------------------------------------------------------------
-always @ (posedge aclk or negedge aresetn)
-    if(~aresetn) begin
+always @ (posedge clk or negedge rstn)
+    if(~rstn) begin
         o_v_a <= 1'b0;
         {o_dh_a, o_dl_a} <= '0;
     end else begin
@@ -398,8 +399,8 @@ always @ (posedge aclk or negedge aresetn)
 // -------------------------------------------------------------------------------------
 //   output data latches --- stage B
 // -------------------------------------------------------------------------------------
-always @ (posedge aclk or negedge aresetn)
-    if(~aresetn) begin
+always @ (posedge clk or negedge rstn)
+    if(~rstn) begin
         o_v_b <= 1'b0;
         o_dh_b <= '0;
     end else begin
@@ -411,7 +412,7 @@ always @ (posedge aclk or negedge aresetn)
 //   dq and dqs generate for output (write)
 // -------------------------------------------------------------------------------------
 always @ (posedge clk2)
-    if(~aclk) begin
+    if(~clk) begin
         o_dqs_c <= 1'b0;
         o_d_c <= o_v_a ? o_dl_a : '0;
     end else begin
@@ -422,7 +423,7 @@ always @ (posedge clk2)
 // -------------------------------------------------------------------------------------
 //   dq delay for output (write)
 // -------------------------------------------------------------------------------------
-always @ (posedge clk)
+always @ (posedge drv_clk)
     o_d_d <= o_d_c;
 
 // -------------------------------------------------------------------------------------
@@ -437,8 +438,8 @@ always @ (posedge clk2)
     if(i_dqs_c)
         i_d_d <= {ddr_dq, i_d_c};
 
-always @ (posedge aclk or negedge aresetn)
-    if(~aresetn) begin
+always @ (posedge clk or negedge rstn)
+    if(~rstn) begin
         {i_v_a, i_v_b, i_v_c, i_v_d} <= '0;
         {i_l_a, i_l_b, i_l_c, i_l_d} <= '0;
     end else begin
@@ -452,8 +453,8 @@ always @ (posedge aclk or negedge aresetn)
         i_l_d <= i_l_c;
     end
 
-always @ (posedge aclk or negedge aresetn)
-    if(~aresetn) begin
+always @ (posedge clk or negedge rstn)
+    if(~rstn) begin
         i_v_e <= 1'b0;
         i_l_e <= 1'b0;
         i_d_e <= '0;
@@ -485,20 +486,20 @@ generate if(READ_BUFFER) begin
     assign rreq    = emptyn & ( rready | ~rvalid );
     assign {rlast, rdata} = dvalid ? fifo_rdata : datareg;
 
-    always @ (posedge aclk or negedge aresetn)
-        if(~aresetn)
+    always @ (posedge clk or negedge rstn)
+        if(~rstn)
             wpt <= 0;
         else if(i_v_e & itready)
             wpt <= wpt + (AWIDTH)'(1);
         
-    always @ (posedge aclk or negedge aresetn)
-        if(~aresetn)
+    always @ (posedge clk or negedge rstn)
+        if(~rstn)
             rpt <= 0;
         else if(rreq & emptyn)
             rpt <= rpt + (AWIDTH)'(1);
 
-    always @ (posedge aclk or negedge aresetn)
-        if(~aresetn) begin
+    always @ (posedge clk or negedge rstn)
+        if(~rstn) begin
             dvalid <= 1'b0;
             valid  <= 1'b0;
             datareg <= 0;
@@ -514,11 +515,11 @@ generate if(READ_BUFFER) begin
 
     reg [DWIDTH-1:0] mem [(1<<AWIDTH)];
 
-    always @ (posedge aclk)
+    always @ (posedge clk)
         if(i_v_e)
             mem[wpt] <= {i_l_e, i_d_e};
 
-    always @ (posedge aclk)
+    always @ (posedge clk)
         fifo_rdata <= mem[rpt];
     
     assign read_accessible = ~rvalid;
