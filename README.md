@@ -19,7 +19,7 @@ FPGA DDR-SDRAM
 
 很多低端 FPGA 开发板使用 SDR-SDRAM 作为片外存储，而 DDR-SDRAM (DDR1) 比 SDR-SDRAM 容量更大，价格更低。且与SDR-SDRAM一样，DDR1也能使用低端FPGA的普通的IO管脚直接驱动。我编写了一个软核的 AXI4 接口的 DDR1 控制器。该控制器的特点有：
 
-* **平台无关** ：纯 RTL 编写，可以在 Altera 和 Xilinx 等各种 FPGA 上运行。
+* **平台无关** ：纯 SystemVerilog 编写，可以在 Altera 和 Xilinx 等各种 FPGA 上运行。
 * **兼容性强** ：支持各种位宽和容量的 DDR1 （已在MICRON所有位宽和容量的DDR1型号上仿真通过）。
 
 为了展示该控制器的使用方法，我提供了两个示例程序：
@@ -343,8 +343,8 @@ AXI4 总线的地址（awaddr和araddr）统一是字节地址，模块会根据
 
 | 文件名称 | 用途 |
 | :---- | :--- |
-| example-selftest/RTL/top.sv | 顶层 |
-| example-selftest/RTL/axi_self_test_master.sv | 是 AXI4 主机，通过 AXI4 先把有规律的数据写入 DDR1，然后读回，比较读回的数据是否符合规律，并对不匹配的情况进行计数。 |
+| example-selftest/top.sv | 顶层 |
+| example-selftest/axi_self_test_master.sv | 是 AXI4 主机，通过 AXI4 先把有规律的数据写入 DDR1，然后读回，比较读回的数据是否符合规律，并对不匹配的情况进行计数。 |
 | RTL/ddr_sdram_ctrl.sv | DDR1 控制器 |
 
 该示例程序的行为是：
@@ -367,13 +367,13 @@ AXI4 总线的地址（awaddr和araddr）统一是字节地址，模块会根据
 
 | 文件名称 | 用途 |
 | :---- | :--- |
-| example-uart-read-write/RTL/top.sv | 顶层 |
-| example-uart-read-write/RTL/uart2axi4.sv | 是 AXI4 主机，能把 UART RX 收到的命令转换成 AXI4 读写操作，并把读操作读出的数据通过 UART TX 发送出去 |
+| example-uart-read-write/top.sv | 顶层 |
+| example-uart-read-write/uart2axi4.sv | 是 AXI4 主机，能把 UART RX 收到的命令转换成 AXI4 读写操作，并把读操作读出的数据通过 UART TX 发送出去 |
 | RTL/ddr_sdram_ctrl.sv | DDR1 控制器 |
 
 [FPGA+DDR1测试板](#硬件设计示例)上有一个 CH340E 芯片（USB 转 UART），因此插上 USB 线后就可以在电脑上看见 UART 对应的 COM 口（需要先在 [www.wch.cn/product/CH340.html](http://www.wch.cn/product/CH340.html) 下载安装 CH341 的驱动）。
 
-工程上传 FPGA 后，双击打开我编写的一个串口小工具 UartSession.exe ，根据提示打开板子对应的 COM 口，然后打如下的命令+回车，可以把 0x0123 0x4567 0x89ab 0xcdef 这 4 个数据写入起始地址 0x12345。（AXI4总线上会产生一个突发长度为 4 的写操作）。
+工程上传 FPGA 后，双击打开我编写的一个串口小工具 UartSession.exe （它在 example-uart-read-write 目录里），根据提示打开板子对应的 COM 口，然后打如下的命令+回车，可以把 0x0123 0x4567 0x89ab 0xcdef 这 4 个数据写入起始地址 0x12345。（AXI4总线上会产生一个突发长度为 4 的写操作）。
 
     w12345 0123 4567 89ab cdef
 

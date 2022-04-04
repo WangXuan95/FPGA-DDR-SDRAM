@@ -82,9 +82,9 @@ reg               wbuf_wen;
 reg [        7:0] wbuf_waddr;
 reg [D_WIDTH-1:0] wbuf_wdata;
 reg [        7:0] wbuf_raddr;
-wire[        7:0] wbuf_raddr_n = stat == AXI_W && wready ? wbuf_raddr + 8'd1 : wbuf_raddr;
 reg [D_WIDTH-1:0] wbuf_rdata;
 enum logic [3:0] {IDLE, INVALID, GADDR, GRLEN, GWDATA, AXI_AR, AXI_R, AXI_AW, AXI_W, AXI_B} stat;
+wire[        7:0] wbuf_raddr_n = stat == AXI_W && wready ? wbuf_raddr + 8'd1 : wbuf_raddr;
 
 assign awvalid = stat == AXI_AW;
 assign wvalid = stat == AXI_W;
@@ -237,6 +237,7 @@ always @ (posedge clk or negedge rstn)
     if(~rstn) begin
         uart_rx_done    <= 1'b0;
         uart_rx_data    <= 8'h0;
+        uart_rx_supercnt<= 3'h0;
         uart_rx_status  <= 6'h0;
         uart_rx_shift   <= 6'h0;
         uart_rx_databuf <= 8'h0;

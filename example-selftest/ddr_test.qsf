@@ -130,8 +130,8 @@ set_global_assignment -name SLD_NODE_PARAMETER_ASSIGNMENT "SLD_TRIGGER_LEVEL_PIP
 set_global_assignment -name SLD_NODE_PARAMETER_ASSIGNMENT "SLD_ENABLE_ADVANCED_TRIGGER=0" -section_id auto_signaltap_0
 set_instance_assignment -name CONNECT_TO_SLD_NODE_ENTITY_PORT acq_clk -to "ddr_ctrl:ddr_ctrl_i|clk2" -section_id auto_signaltap_0
 
-set_global_assignment -name SYSTEMVERILOG_FILE RTL/top.sv
-set_global_assignment -name SYSTEMVERILOG_FILE RTL/axi_self_test_master.sv
+set_global_assignment -name SYSTEMVERILOG_FILE top.sv
+set_global_assignment -name SYSTEMVERILOG_FILE axi_self_test_master.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../RTL/ddr_sdram_ctrl.sv
 set_global_assignment -name SIGNALTAP_FILE SignalTap/stp1.stp
 

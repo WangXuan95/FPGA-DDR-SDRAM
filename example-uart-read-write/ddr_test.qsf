@@ -49,8 +49,8 @@ set_global_assignment -name ERROR_CHECK_FREQUENCY_DIVISOR 1
 set_global_assignment -name NOMINAL_CORE_SUPPLY_VOLTAGE 1.2V
 set_global_assignment -name STRATIX_DEVICE_IO_STANDARD "2.5 V"
 
-set_global_assignment -name SYSTEMVERILOG_FILE RTL/top.sv
-set_global_assignment -name SYSTEMVERILOG_FILE RTL/uart2axi4.sv
+set_global_assignment -name SYSTEMVERILOG_FILE top.sv
+set_global_assignment -name SYSTEMVERILOG_FILE uart2axi4.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../RTL/ddr_sdram_ctrl.sv
 
 set_location_assignment PIN_23 -to clk50m
