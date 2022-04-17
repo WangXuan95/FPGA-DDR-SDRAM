@@ -1,7 +1,10 @@
 ![语言](https://img.shields.io/badge/语言-systemverilog_(IEEE1800_2005)-CAD09D.svg) ![仿真](https://img.shields.io/badge/仿真-iverilog-green.svg) ![部署](https://img.shields.io/badge/部署-quartus-blue.svg) ![部署](https://img.shields.io/badge/部署-vivado-FF1010.svg)
 
+中文 | [English](#en)
+
 FPGA DDR-SDRAM
 ===========================
+
 在低端FPGA设计中用 DDR-SDRAM（DDR1）替换 SDR-SDRAM。
 
 # 简介
@@ -33,13 +36,11 @@ FPGA DDR-SDRAM
 
 # 目录
 
-* [简介](#简介)
 * [硬件设计指南](#硬件设计指南)
 * [硬件设计示例](#硬件设计示例)
 * [DDR1 控制器](#DDR1控制器)
     * [模块参数](#模块参数)
     * [模块接口：驱动时钟和复位](#模块接口：驱动时钟和复位)
-    * [时钟频率的选取](#时钟频率的选取)
     * [模块接口：DDR1接口](#模块接口：DDR1接口)
     * [模块接口：AXI4从接口](#模块接口：AXI4从接口)
     * [位宽参数的确定](#位宽参数的确定)
@@ -48,7 +49,6 @@ FPGA DDR-SDRAM
     * [示例程序：自测](#示例程序：自测)
     * [示例程序：UART读写](#示例程序：UART读写)
 * [仿真](#仿真)
-    * [运行仿真](#运行仿真)
     * [修改仿真参数](#修改仿真参数)
 
 
@@ -59,16 +59,16 @@ FPGA DDR-SDRAM
 
 下表展示了 DDR1 颗粒 的引脚，以及其与 FPGA 连接时应该注意的点。
 
-| 引脚名称  | 方向 | 位宽 | 说明 | 连接方法 | 注意事项 |
+| 引脚名称  | 方向 | 位宽 | 说明 | 电平 | 注意事项 |
 | :---:    | :---: | :---: | :--- | :--- | :--- |
-| ddr_ck_p | FPGA output | 1 | 差分时钟正，≥75MHz | 应与 FPGA 的 2.5V LVTTL管脚连接 | 布线尽量短，与 ddr_ck_n 差分布线 |
-| ddr_ck_n | FPGA output | 1 | 差分时钟负，≥75MHz | 应与 FPGA 的 2.5V LVTTL管脚连接 | 布线尽量短，与 ddr_ck_p 差分布线 |
-| ddr_cke、ddr_cs_n  | FPGA output | 1 | 低速     | 应与 FPGA 的 2.5V LVTTL管脚连接 | |
-| ddr_ras_n、ddr_cas_n、ddr_we_n  | FPGA output | 1 | 与 ddr_ck_p 下降沿同步  | 应与 FPGA 的 2.5V LVTTL管脚连接 | 布线尽量短，与 ddr_ck_p 大致等长（长度别太离谱即可） |
-| ddr_ba  | FPGA output | 2 | 与 ddr_ck_p 下降沿同步  | 应与 FPGA 的 2.5V LVTTL管脚连接 | 布线尽量短，与 ddr_ck_p 大致等长（别太离谱即可） |
-| ddr_a  | FPGA output | 取决于芯片型号 | 与 ddr_ck_p 下降沿同步  | 应与 FPGA 的 2.5V LVTTL管脚连接 | 布线尽量短，与 ddr_ck_p 大致等长（别太离谱即可） |
-| ddr_dqs | inout | 取决于芯片型号 |  | 应与 FPGA 的 2.5V LVTTL管脚连接 | 布线尽量短 |
-| ddr_dm、ddr_dq | inout | 取决于芯片型号 | 与 ddr_dqs 双沿同步 | 应与 FPGA 的 2.5V LVTTL管脚连接 | 布线尽量短，与 ddr_dqs 大致等长（别太离谱即可） |
+| ddr_ck_p | FPGA output | 1 | 差分时钟正，≥75MHz | 2.5V LVTTL | 布线尽量短，与 ddr_ck_n 差分布线 |
+| ddr_ck_n | FPGA output | 1 | 差分时钟负，≥75MHz | 2.5V LVTTL | 布线尽量短，与 ddr_ck_p 差分布线 |
+| ddr_cke、ddr_cs_n  | FPGA output | 1 | 低速     | 2.5V LVTTL | |
+| ddr_ras_n、ddr_cas_n、ddr_we_n  | FPGA output | 1 | 与 ddr_ck_p 下降沿同步  | 2.5V LVTTL | 布线尽量短，与 ddr_ck_p 大致等长（长度别太离谱即可） |
+| ddr_ba  | FPGA output | 2 | 与 ddr_ck_p 下降沿同步  | 2.5V LVTTL | 布线尽量短，与 ddr_ck_p 大致等长（别太离谱即可） |
+| ddr_a  | FPGA output | 取决于芯片型号 | 与 ddr_ck_p 下降沿同步  | 2.5V LVTTL | 布线尽量短，与 ddr_ck_p 大致等长（别太离谱即可） |
+| ddr_dqs | inout | 取决于芯片型号 |  | 2.5V LVTTL | 布线尽量短 |
+| ddr_dm、ddr_dq | inout | 取决于芯片型号 | 与 ddr_dqs 双沿同步 | 2.5V LVTTL | 布线尽量短，与 ddr_dqs 大致等长（别太离谱即可） |
 
 
 # 硬件设计示例
@@ -132,7 +132,7 @@ rstn_async 是低电平复位信号，正常工作时应该置高。drv_clk 是�
 
 模块开始工作前，rstn_async 信号应该置低，让模块复位，然后把 rstn_async 置高，解除复位。
 
-## 时钟频率的选取
+### 时钟频率的选取
 
 模块内将驱动时钟 drv_clk 分频 4 倍产生 DDR1 时钟（ddr_ck_p/ddr_ck_n）和 AXI4 总线用户时钟（clk）。本节讲述如何决定驱动时钟 drv_clk 的频率。
 
@@ -202,7 +202,7 @@ AXI4 总线的数据（wdata和rdata）的位宽是 DDR1 数据位宽的 2 倍�
 
 AXI4 总线的地址（awaddr和araddr）统一是字节地址，模块会根据用户指定的参数来计算 awaddr 和 araddr 的位宽 = BA_BITS+ROW_BITS+COL_BITS+DQ_LEVEL-1 。例如对于 64MB 的 MT46V64M8 ，awaddr/araddr 位宽为 26，而 2^26 等于 64MB。
 
-每次读写访问时，地址值（awaddr和araddr）都要和整个字对齐，例如若 wdata 和 rdata 的位宽是 16bit（2字节），那么 wdata 和 rdata 要按 2 字节对齐，即能整除 2。
+每次读写访问时，地址值（awaddr和araddr）都要和整个字对齐，例如若 wdata 和 rdata 的位宽是 16bit（2字节），那么 awaddr 和 araddr 要按 2 字节对齐，即能整除 2。
 
 该模块的 AXI4 接口不支持字节选通写入，没有 wstrb 信号，每次至少写入一整个数据位宽，例如若 wdata 的位宽是 16，那么一次至少写入2字节。
 
@@ -408,8 +408,6 @@ AXI4 总线的地址（awaddr和araddr）统一是字节地址，模块会根据
 
 该仿真工程的行为和自测程序一样， axi_self_test_master.sv 作为 AXI4 主机，将有规律的数据写入 DDR1 中，只不过不是全部写入，而是只写入 DDR1 的前 16KB （因为仿真模型的存储空间有限），然后一轮一轮地反复读出数据，比较是否有不匹配的数据，若有，则在 error 信号上产生一个时钟周期的高电平。
 
-## 运行仿真
-
 使用 iverilog 进行仿真前，需要安装 iverilog ，见：[iverilog_usage](https://github.com/WangXuan95/WangXuan95/blob/main/iverilog_usage/iverilog_usage.md)
 
 然后双击 tb_ddr_sdram_ctrl_run_iverilog.bat 运行仿真，然后可以打开生成的 dump.vcd 文件查看波形。
@@ -438,3 +436,440 @@ AXI4 总线的地址（awaddr和araddr）统一是字节地址，模块会根据
 
 * MICRON 公司提供的 DDR1 仿真模型: https://www.micron.com/products/dram/ddr-sdram/part-catalog/mt46v64m8p-5b
 * MT46V64M8 芯片手册: https://media-www.micron.com/-/media/client/global/documents/products/data-sheet/dram/ddr1/512mb_ddr.pdf?rev=4e1e995d6d2240e293286770f193d57d
+
+
+
+
+
+<span id="en">FPGA DDR-SDRAM</span>
+===========================
+
+Replacing SDR-SDRAM with DDR-SDRAM (DDR1) in low-end FPGA designs.
+
+# Introduction
+
+                          |------------------------------|          |-----------|
+                          |                              |          |           |
+                    ----->| driving clock and reset      |          |           |
+                          |                              |          |           |
+    ------------|         |          DDR-SDRAM interface |--------->|           |
+                |  AXI4   |                              |          |           |
+    AXI4 master |-------->| AXI4 slave                   |          |           |
+                |         |                              |          |           |
+    ------------|         |------------------------------|          |-----------|
+     User Logic          DDR1 Controller (ddr_sdram_ctrl.sv)          DDR1 chip
+
+Many low-end FPGA development boards use SDR-SDRAM as off-chip memory, but DDR-SDRAM (DDR1) is larger and less expensive than SDR-SDRAM. And like SDR-SDRAM, DDR1 can also be directly driven by common IO pins of low-end FPGAs. I write a soft core DDR1 controller with a slave AXI4 interface for user. The features of this controller are:
+
+* **Platform Independent** : Written in pure SystemVerilog and can run on various FPGAs including Altera and Xilinx.
+* **Compatible** : Supports DDR1 of various bit widths and capacities (this has been verify by simulation on MICRON's DDR1 models).
+
+To demonstrate the use of this controller, I provide two demo projects:
+
+* **Self-test demo** : Through the DDR1 controller, write data into DDR1, then read it out, and compare whether the read data is consistent with the written data.
+* **UART DDR1 read/write demo** : Convert UART commands into AXI4 bus actions to read and write DDR1 through the DDR1 controller.
+
+In addition, since the interface timing of each generation of DDR-SDRAM (such as DDR3, DDR2, DDR1) is similar, this repository can also facilitate those who are familiar with Verilog to learn the DDR-SDRAM interface.
+
+
+
+# Table of Contents
+
+* [Hardware Design Guidelines](#Hardware Design Guidelines)
+* [Hard Design Example](#Hard Design Example)
+* [DDR1 Control Module Manual](#DDR1 Control Module Manual)
+  * [Module Parameters](#Module Parameters)
+  * [Module Interface: clock and reset](#Module Interface: clock and reset)
+  * [Module Interface: DDR1 interface](#Module Interface: DDR1 interface)
+  * [Module Interface: AXI4 slave](#Module Interface: AXI4 slave)
+  * [Bit Width Parameters](#Bit Width Parameters)
+  * [Timing Parameters](#Timing Parameters)
+* [FPGA Demo Projects](#FPGA Demo Projects)
+  * [Self-test demo](#Self-test demo)
+  * [UART DDR1 read/write demo](#UART DDR1 read/write demo)
+* [RTL Simulation](#RTL Simulation)
+  * [Modify Simulation Attributes](#Modify Simulation Attributes)
+
+
+
+# Hardware Design Guidelines
+
+For FPGA selection, only an FPGA with a sufficient number of common IOs can drive DDR1. The IO level standard of DDR1 is often SSTL-2, which is compatible with 2.5V LVTTL or 2.5V LVCMOS, so the power supply of the corresponding FPGA IO bank should be 2.5V, and should be configured as 2.5V LVTTL or 2.5V LVCMOS in the FPGA development software .
+
+The following table shows the pin defination of the DDR1 chip and the points that should be paid attention to when connecting it to the FPGA.
+
+|            pin name            |  direction  |        width        | introduction                      | level      | note                             |
+| :----------------------------: | :---------: | :-----------------: | :-------------------------------- | :--------- | :------------------------------- |
+|            ddr_ck_p            | FPGA output |          1          | DDR1 clock p , ≥75MHz             | 2.5V LVTTL | differential route with ddr_ck_n |
+|            ddr_ck_n            | FPGA output |          1          | DDR1 clock n , ≥75MHz             | 2.5V LVTTL | differential route with ddr_ck_p |
+|       ddr_cke, ddr_cs_n        | FPGA output |          1          | low speed                         | 2.5V LVTTL |                                  |
+| ddr_ras_n, ddr_cas_n, ddr_we_n | FPGA output |          1          | sync with ddr_ck_p's falling edge | 2.5V LVTTL | same length as ddr_ck_p          |
+|             ddr_ba             | FPGA output |          2          | sync with ddr_ck_p's falling edge | 2.5V LVTTL | same length as ddr_ck_p          |
+|             ddr_a              | FPGA output | depend on DDR1 part | sync with ddr_ck_p's falling edge | 2.5V LVTTL | same length as ddr_ck_p          |
+|            ddr_dqs             |    inout    | depend on DDR1 part |                                   | 2.5V LVTTL |                                  |
+|         ddr_dm、ddr_dq         |    inout    | depend on DDR1 part | sync with ddr_dqs's double edge   | 2.5V LVTTL | same length as ddr_dqs           |
+
+
+# Hard Design Example
+
+For demonstration, I used the cheapest FPGA of Altera Cyclone IV (model: EP4CE6E22C8N) and MICRON's 64MB DDR1 (model MT46V64M8TG-6T) to design a small board. All the demo project of this repository can run on this board directly. If you want to use DDR1 in your own PCB design, just refer to this board's design.
+
+| ![board-image](./figures/board.jpg)  |
+| :----------------------------------: |
+| **Figure** : FPGA + DDR1 demo board. |
+
+See board schematic [PCB/sch.pdf](./PCB/sch.pdf) and manufacturing file [PCB/gerber.zip](./PCB/gerber.zip) . It is a double-layer board, and it is not necessary to pay attention to impedance matching like DDR2 and DDR3, because the operating frequency of the circuit is 75MHz on both sides, which is not particularly high. Just pay attention to keeping the distance between FPGA and DDR as close as possible, and the wiring as short as possible. For example, I put the DDR1 chip on the opposite side of the FPGA chip to keep the wiring short.
+
+The design of this board is open in LCEDA, see [oshwhub.com/wangxuan/fpga-ddr-ce-shi-ban](https://oshwhub.com/wangxuan/fpga-ddr-ce-shi-ban) .
+
+
+
+# DDR1 Control Module Manual
+
+See [RTL/ddr_sdram_ctrl.sv](./RTL/ddr_sdram_ctrl.sv) for the DDR1 controller code, which can automatically initialize DDR1 and refresh it regularly. The module has a AXI4 slave interface through which reads and writes to DDR1 can be accomplished. This section introduce in detail how to use this module.
+
+## Module Parameters
+
+Verilog parameters of this module are defined as follows:
+
+```Verilog
+module ddr_sdram_ctrl #(
+    parameter   READ_BUFFER   = 1,
+    parameter       BA_BITS   = 2,
+    parameter       ROW_BITS  = 13,
+    parameter       COL_BITS  = 11,
+    parameter       DQ_LEVEL  = 1,
+    parameter [9:0] tREFC     = 10'd256,
+    parameter [7:0] tW2I      = 8'd7,
+    parameter [7:0] tR2I      = 8'd7
+)
+```
+
+These parameters are described in the table below:
+
+|  Parameter  |  Type  | value range | default value | introduction                                                 |
+| :---------: | :----: | :---------: | :-----------: | :----------------------------------------------------------- |
+| READ_BUFFER |        |   0 or 1    |       1       | If it is set to 0, there will be no read data buffer in the DDR1 controller, and the read data will not wait for the AXI4 host to accept it, that is, the rvalid signal will not wait for the rready signal, and will be directly poured out at the highest rate. At this time, AXI4 is not Complete, but can reduce the latency of readout. If it is set to 1, there will be a large enough read data buffer in the DDR1 controller, and the rvalid signal will shake hands with the rready signal to confirm that the AXI4 host is ready before reading the data. |
+|   BA_BITS   | Width  |     1~4     |       2       | The width of DDR BANK ADDRESS (ddr_ba) is specified. Regular DDR1 BANK ADDRESS is 2bit, so this parameter is usually fixed to the default value and does not need to be changed. |
+|  ROW_BITS   | Width  |    1~15     |      13       | It specifies the width of the DDR ROW ADDRESS, and also determines the width of the address line pins (ddr_a) of the DDR1 chip. This parameter depends on the selection of the DDR1 chip. For example, MT46V64M8 has 8192 COLs per bank, considering 2^11=8192, this parameter should be 13. Similarly, for MT46V128M8, this parameter should be 14 |
+|  COL_BITS   | Width  |    1~14     |      11       | Specifies the width of the DDR COL ADDRESS. This parameter depends on the selection of the DDR1 chip. For example, MT46V64M8 has 2048 COLs per ROW. Considering 2^11=2048, this parameter should be 11. Similarly, for MT46V32M16, this parameter should be 10. |
+|  DQ_LEVEL   | Width  |     0~7     |       1       | The data bit width of the DDR1 chip is specified. For a chip with a bit width of x4 (such as MT46V64M4), this parameter should be 0; for a chip with a bit width of x8 (such as MT46V64M8), this parameter should be 1; for a chip with a bit width of x16 ( For example, MT46V64M16), this parameter should be 2; for the case of bit width x32 (such as two pieces of MT46V64M16 extended bit width), this parameter should be 3; and so on. |
+|    tREFC    | Timing |   1\~1023   |      256      | The controller will refresh DDR1 periodically, and this parameter specifies the refresh interval of DDR1. See [Timing Parameters](#Timing Parameters) for details. |
+|    tW2I     | Timing |   1\~255    |       7       | This parameter specifies the interval from the last write command of a write action to the activation command (ACT) of the next action. See [Timing Parameters](#Timing Parameters) for details. |
+|    tR2I     | Timing |   1\~255    |       7       | This parameter specifies the interval from the last read command of a read action to the activation command (ACT) of the next action. See [Timing Parameters](#Timing Parameters) for details. |
+
+## Module Interface: clock and reset
+
+This module requires a drive clock and a drive reset, as follows:
+
+```Verilog
+    input  wire          rstn_async,
+    input  wire          drv_clk,
+```
+
+`rstn_async` is a low-level reset signal and should be set high during normal operation. `drv_clk` is the driving clock, and its frequency is 4 times the user clock.
+
+Before the module starts working, the `rstn_async` signal should be set low to reset the module, and then set rstn_async high to release the reset.
+
+### Clock freqency selection
+
+In this module, the driving clock `drv_clk` is divided by 4 to generate the DDR1 clock (`ddr_ck_p/ddr_ck_n`) and the AXI4 bus user clock (`clk`). This section describes how to determine the frequency of the drive clock `drv_clk`.
+
+First, the clock frequency is limited by the DDR1 chip. Considering that all DDR1 interface frequencies are at least 75MHz, the lower limit of `drv_clk` is 75\*4=300MHz.
+
+The upper limit of `drv_clk` also depends on the chip model of DDR1. For example, for MT46V64M8P-5B, check the chip manual, the maximum clock frequency of DDR1 with -5B suffix is 133MHz when CAS Latency (CL)=2, then the upper limit of `drv_clk` is 133 \*4=532MHz.
+
+> Note: This controller has a fixed CAS Latency (CL) = 2.
+
+In addition, the upper limit of the clock frequency is also limited by the speed of the FPGA. Too high a clock frequency can easily lead to timing failure. This design fully considers the timing safety design, most registers work in the clk clock domain with a lower frequency; some registers work in a clock that is twice the frequency of the clk clock, and the combinational logic of the input port is very short; Under the `drv_clk` of the frequency, but the input port comes directly from the register output of the upper stage (no combinational logic). Therefore, even on the EP4CE6E22C8N with a very low speed class, the correct operation of the module is guaranteed at a drive clock of 300MHz.
+
+## Module Interface: DDR1 interface
+
+Following is the DDR1 interface of this module. These signals should be pinout directly from the FPGA and connected to the DDR1 chip.
+
+```Verilog
+    output wire                            ddr_ck_p, ddr_ck_n,
+    output wire                            ddr_cke,
+    output reg                             ddr_cs_n,
+    output reg                             ddr_ras_n,
+    output reg                             ddr_cas_n,
+    output reg                             ddr_we_n,
+    output reg   [            BA_BITS-1:0] ddr_ba,
+    output reg   [           ROW_BITS-1:0] ddr_a,
+    output wire  [((1<<DQ_LEVEL)+1)/2-1:0] ddr_dm,
+    inout        [((1<<DQ_LEVEL)+1)/2-1:0] ddr_dqs,
+    inout        [      (4<<DQ_LEVEL)-1:0] ddr_dq
+```
+
+It can be seen that the bit width of some signals of the DDR1 interface is related to the parameters, and the user needs to determine the module parameters according to the DDR1 chip part. For details, see [Bit Width Parameters](#Bit Width Parameters).
+
+If you want to know the waveforms of the DDR1 interface during initialization, read/write, and refresh, please perform [RTL Simulation](#RTL Simulation).
+
+## Module Interface: AXI4 slave
+
+The DDR1 controller provides clock and reset signals for the AXI4 slave interface, as follows. The AXI4 masters should use them as their clock and reset.
+
+```Verilog
+    output reg                                            rstn,
+    output reg                                            clk,
+```
+
+Following code are the AXI4 slave interfaces of this module, they are all synchronized with the rising edge of `clk` clock and should be connected to the AXI4 master inside the FPGA.
+
+```Verilog
+    input  wire                                           awvalid,
+    output wire                                           awready,
+    input  wire  [BA_BITS+ROW_BITS+COL_BITS+DQ_LEVEL-2:0] awaddr,
+    input  wire                                    [ 7:0] awlen,
+    input  wire                                           wvalid,
+    output wire                                           wready,
+    input  wire                                           wlast,
+    input  wire                       [(8<<DQ_LEVEL)-1:0] wdata,
+    output wire                                           bvalid,
+    input  wire                                           bready,
+    input  wire                                           arvalid,
+    output wire                                           arready,
+    input  wire  [BA_BITS+ROW_BITS+COL_BITS+DQ_LEVEL-2:0] araddr,
+    input  wire                                    [ 7:0] arlen,
+    output wire                                           rvalid,
+    input  wire                                           rready,
+    output wire                                           rlast,
+    output wire                       [(8<<DQ_LEVEL)-1:0] rdata,
+```
+
+The bit width of the data (`wdata` and `rdata`) of the AXI4 bus is twice that of the DDR1 data bit width. For example, for MT46V64M8 whose bit width is 8bit, the bit width of `wdata` and `rdata` is 16bit.
+
+The addresses (`awaddr` and `araddr`) of the AXI4 are byte addresses. The module will calculate the bit width of `awaddr` and `araddr` according to the parameters specified by the user = `BA_BITS+ROW_BITS+COL_BITS+DQ_LEVEL-1` . For example, for a 64MB MT46V64M8, the `awaddr/araddr` bit width is 26, where 2^26=64MB.
+
+For each read and write access, the address value (`awaddr` and `araddr`) must be aligned with the entire word. For example, if the bit width of `wdata` and `rdata` is 16bit (2 bytes), then `awaddr` and `araddr` should be aligned by 2 bytes, that is, Divide by 2.
+
+The AXI4 interface of this module does not support byte strobe write, there is no `wstrb` signal, and at least one entire data bit width is written each time. For example, if the bit width of `wdata` is 16, then at least 2 bytes are written at a time.
+
+The AXI4 interface of this module supports burst reading and writing, and the burst length can take any value between 1\~256, that is, the value range of `awlen` and `arlen` is 0\~255. For example, in a write operation, `awlen=12`, the burst length is 13, and if the bit width of `wdata` is 16, then the burst write writes a total of 13\*2=26B.
+
+Note that each burst read and write cannot exceed a row boundary within DDR1. For example, for MT46V64M8, each row has 8\*2^11/8 = 2048B, so each burst read and write cannot exceed the 2048B boundary.
+
+### AXI4 Write Operation
+
+               __    __    __    __    __    __    __    __    __    __    __    __    _
+    clk     __/  \__/  \__/  \__/  \__/  \__/  \__/  \__/  \__/  \__/  \__/  \__/  \__/
+                ___________
+    awvalid ___/           \____________________________________________________________
+                      _____
+    awready _________/     \____________________________________________________________
+                ___________
+    awaddr  XXXX____ADDR___XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+                ___________
+    awlen   XXXX____8'd3___XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+                            ___________       ___________       _____
+    wvalid  _______________/           \_____/           \_____/     \__________________
+                                  ___________________________________
+    wready  _____________________/                                   \__________________
+                                                                _____
+    wlast   ___________________________________________________/     \__________________
+                            ___________       _____ _____       _____
+    wdata   XXXXXXXXXXXXXXXX_____D0____XXXXXXX__D1_X__D2_XXXXXXX__D3_XXXXXXXXXXXXXXXXXXX
+                                                                      ___________
+    bvalid  _________________________________________________________/           \______
+                                                                            _____
+    bready  _______________________________________________________________/     \______
+
+一个典型的，突发长度为 4 （awlen=3） 的 AXI4 写操作如上图。分为 3 步：
+
+* **地址通道握手**：AXI4 主机把 awvalid 信号拉高，指示想要发起写动作，图中经过一周期后，DDR1 控制器才把 awready 信号拉高，说明地址通道握手成功（在此之前，DDR1 控制器可能在处理上一次读写动作，或者在进行刷新，因此暂时没把 awready 拉高）。握手成功的同时，DDR1 控制器收到待写地址（awaddr）和突发长度（awlen），awlen=8'd3 说明突发长度为 4。
+* **数据传送**：AXI4 总线上的 wvalid 和 wready 进行 4 次握手，把突发传输的 4 个数据写入 DDR1。在握手时，若 AXI4 主机还没准备好数据，可以把 wvalid 拉低，若 DDR1 控制器还没准备好接受数据，会把 wready 拉低。注意，根据 AXI4 总线的规定，在突发传输的最后一个数据传输的同时需要把 wlast 信号置高（实际上即使不置高，DDR1 控制器也能根据突发长度自动结束数据传送，进入写响应状态）。
+* **写响应**：数据传送结束后，DDR1 控制器还需要和 AXI4 主机进行一次握手，才能彻底结束本次写动作。DDR1 控制器在数据传送结束后立即把 wvalid 信号拉高，并等待 wready 为高。完成该握手后，DDR1才能响应下一次读写操作。
+
+### AXI4 Read Operation
+
+               __    __    __    __    __    __    __    __    __    __    __    __    _
+    clk     __/  \__/  \__/  \__/  \__/  \__/  \__/  \__/  \__/  \__/  \__/  \__/  \__/
+                ___________
+    arvalid ___/           \____________________________________________________________
+                      _____
+    arready _________/     \____________________________________________________________
+                ___________
+    araddr  XXXX____ADDR___XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+                ___________
+    arlen   XXXX____8'd4___XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+                                              ___________________________________
+    rvalid  _________________________________/                                   \______
+            ___________________________________________________       __________________
+    rready                                                     \_____/
+                                                                            _____
+    rlast   _______________________________________________________________/     \______
+                                              _____ _____ _____ ___________ _____
+    rdata   XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX__D0_X__D1_X__D2_X_____D3____X__D4_XXXXXXX
+
+A typical AXI4 read operation with a burst length of 5 (`arlen=4`) is shown above. Divided into 2 steps:
+
+* **Address channel handshake**: The AXI4 host pulls the `arvalid` signal high, indicating that it wants to initiate a write action. After a cycle in the figure, the DDR1 controller pulls the ready signal high, indicating that the address channel handshake is successful (before this , the DDR1 controller may be processing the last read or write action, or performing a refresh, so it has not pulled ready for the time being). At the same time as the handshake is successful, the DDR1 controller receives the address to be read (`araddr`) and the burst length (`arlen`). `arlen=8'd4` means that the burst length is 5.
+* **Data transfer**: `rvalid` and `rready` on the AXI4 bus perform 5 handshakes, and read out 5 of the burst transfer. During handshake, if the AXI4 host is not ready to accept data, `rready` can be pulled low, and the DDR1 controller will keep the current data until the AXI4 host can accept the data (that is, pull `rready` high). When the last data is transferred, the DDR1 controller will pull `rlast` high.
+
+> Note: When the module parameter `READ_BUFFER=0`, the module will save a BRAM resource and also reduce the delay between address channel handshake and data transfer. But the DDR1 controller ignores the `rready=0` condition and does not wait for the AXI4 host to be ready to accept data. This will destroy the completeness of the AXI4 protocol, but it may be useful in some simple situations.
+
+
+## Bit Width Parameters
+
+This section describes how to determine the 4 parameters: `BA_BITS` , `ROW_BITS` , `COL_BITS` and `DQ_LEVEL`.
+
+Take [MICRON's DDR-SDRAM](https://www.micron.com/products/dram/ddr-sdram) series chips as an example, different chips have different ROW ADDRESS BITS, COL ADDRESS BITS and DATA BITS, which means that their bit width parameters are also different, as shown in the following table (note: these parameters can be found in the chip datasheet).
+
+| chip part  | ddr_dq width | ddr_dm ddr_dqs width | DQ_LEVEL | BA_BITS | ROW_BITS | COL_BITS | byte per row | total capacity             | awaddr/araddr width |
+| :--------: | :----------: | :------------------: | :------: | :-----: | :------: | :------: | :----------: | :------------------------- | :-----------------: |
+| MT46V64M4  |      4       |          1           |    0     |    2    |    13    |    11    |     1024     | 4\*2^(2+13+11)=256Mb=32MB  |         25          |
+| MT46V128M4 |      4       |          1           |    0     |    2    |    13    |    12    |     2048     | 4\*2^(2+13+12)=512Mb=64MB  |         26          |
+| MT46V256M4 |      4       |          1           |    0     |    2    |    14    |    12    |     4096     | 4\*2^(2+14+12)=1Gb=128MB   |         27          |
+| MT46V32M8  |      8       |          1           |    1     |    2    |    13    |    10    |     1024     | 8\*2^(2+13+10)=256Mb=32MB  |         25          |
+| MT46V64M8  |      8       |          1           |    1     |    2    |    13    |    11    |     2048     | 8\*2^(2+13+11)=512Mb=64MB  |         26          |
+| MT46V128M8 |      8       |          1           |    1     |    2    |    14    |    11    |     4096     | 8\*2^(2+14+11)=1Gb=128MB   |         27          |
+| MT46V16M16 |      16      |          2           |    2     |    2    |    13    |    9     |     1024     | 16\*2^(2+13+9)=256Mb=32MB  |         25          |
+| MT46V32M16 |      16      |          2           |    2     |    2    |    13    |    10    |     2048     | 16\*2^(2+13+10)=512Mb=64MB |         26          |
+| MT46V64M16 |      16      |          2           |    2     |    2    |    14    |    10    |     4096     | 16\*2^(2+14+10)=1Gb=128MB  |         27          |
+
+## Timing Parameters
+
+This section describes how to determine the 3 timing parameters `tREFC`, `tW2I` and `tR2I`.
+
+We know that DDR1 requires periodic refresh action, and `tREFC` specifies the refresh clock cycle interval (subject to clk). For example, if the user clock is 75MHz, according to the chip manual of MT46V64M8, it needs to be refreshed once at most 7.8125us. Considering that 75MHz * 7.8125us = 585.9, this parameter can be set to a value less than 585, such as `10'd512`.
+
+`tW2I` specifies the minimum number of clock cycles (in clk) from the last write command of a write operation to the active command (ACT) of the next operation. The following figure shows a write operation on a DDR1 interface. The first rising edge of ddr_cas_n represents the end of the last write command of a write operation, and the second falling edge of ddr_ras_n represents the next operation (may be read, write, Refresh), there are 5 clock cycles between them, `tW2I` is used to specify the lower limit of the number of cycles. The default value of `tW2I` is `8'd7`, which is a conservative value compatible with most DDR1s. For different DDR1 chips, there are different shrinkage margins (see DDR1 chip datasheet for details).
+
+                 __    __    __    __    __    __    __    __    __    __    __    __
+    ddr_ck_p  __/  \__/  \__/  \__/  \__/  \__/  \__/  \__/  \__/  \__/  \__/  \__/  \__
+              _____       _______________________________________________       ________
+    ddr_ras_n      \_____/                                               \_____/
+              _________________             ____________________________________________
+    ddr_cas_n                  \___________/
+              _________________             ____________________________________________
+    ddr_we_n                   \___________/
+                                      _____
+    ddr_a[10] XXXXXXXXXXXXXXXXXX_____/     XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+                    _______________________
+    ddr_ba    XXXXXX__________BA___________XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+                    _______________________
+    ddr_a     XXXXXX__RA_XXXXXXX_CA0_X_CA1_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+`tR2I` specifies the minimum number of clock cycles (in `clk`) from the last read command of a read operation to the active command (ACT) of the next operation. The figure below shows a read operation on a DDR1 interface. The first rising edge of ddr_cas_n represents the end of the last read command of a read operation, and the second falling edge of ddr_ras_n represents the next operation (may be read, write, Refresh), there are 5 clock cycles between them, `tR2I` is used to specify the lower limit of the number of cycles. The default value of `tR2I` is `8'd7`, which is a conservative value compatible with most DDR1. For different DDR1 chips, there are different shrinkage margins (see DDR1 chip datasheet for details).
+
+                 __    __    __    __    __    __    __    __    __    __    __    __
+    ddr_ck_p  __/  \__/  \__/  \__/  \__/  \__/  \__/  \__/  \__/  \__/  \__/  \__/  \__
+              _____       _______________________________________________       ________
+    ddr_ras_n      \_____/                                               \_____/
+              _________________             ____________________________________________
+    ddr_cas_n                  \___________/
+              __________________________________________________________________________
+    ddr_we_n
+                                      _____
+    ddr_a[10] XXXXXXXXXXXXXXXXXX_____/     XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+                    _______________________
+    ddr_ba    XXXXXX__________BA___________XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+                    _______________________
+    ddr_a     XXXXXX__RA_XXXXXXX_CA0_X_CA1_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+
+
+# FPGA Demo Projects
+
+## Self-test demo
+
+I provide a DDR1 read and write self-test project based on the [FPGA+DDR1 board](#Hardware Design Example) I designed. The project directory is [example-selftest](./example-selftest) , please open it with Quartus.
+
+This project contains following files:
+
+| File Name                                | Introduction                                                 |
+| :--------------------------------------- | :----------------------------------------------------------- |
+| example-selftest/top.sv                  | top-level module                                             |
+| example-selftest/axi_self_test_master.sv | AXI4 master. First, write the data into DDR1 through AXI4, and then read back and verify. |
+| RTL/ddr_sdram_ctrl.sv                    | DDR1 controller                                              |
+
+The behavior of the demo project is:
+
+**Write**: After the project starts running, it will first write the entire DDR1 through AXI4, and directly write the address word to the corresponding address. For example, if the data width of AXI4 is 16bit, then write 0x0001 at address 0x000002. Write 0x3456 at address 0x123456.
+
+**Read & Error Check**: After writing the entire DDR1, the project will repeatedly read the entire DDR1 round by round. error) to generate a high-level pulse, and the error count signal (error_cnt) +1. If the DDR1 configuration is correct, there should be no error signal. You can measure the pin corresponding to error_cnt, if it is 0 (all low), it means there is no error.
+
+**SignalTap waveform capture**: This project contains a SignalTap file stp1.stp, which can be used to view the waveform on the DDR1 interface when the program is running. It triggers with error=1, so if there is no error in the read and write self-test, it will not be triggered. Because the project is reading DDR1 at any time, if you want to see the waveform on the DDR1 interface, just press the "Stop" button.
+
+**Modify AXI4 burst length**: You can modify WBURST_LEN and RBURST_LEN in lines 82 and 83 of top.sv to modify the write/read burst length during self-test. The self-test program only supports 2^n-1 This burst length, ie WBURST_LEN and RBURST_LEN must take values like 0, 1, 3, 7, 15, 31, ... (note that this is only a limitation of the self-test program I wrote, DDR1 controller supports 0 Any burst length between ~255.
+
+> WBURST_LEN and RBURST_LEN can be set differently.
+
+## UART DDR1 read/write demo
+
+I provide a UART read and write project based on the [FPGA+DDR1 board](#Hardware Design Example) I designed. In this project, you can read and write DDR1 with different burst lengths through UART commands. The project directory is [example-uart-read-write](./example-uart-read-write) , please open it with Quartus.
+
+The project contains the following files:
+
+| File Name                            | Introduction                                                 |
+| :----------------------------------- | :----------------------------------------------------------- |
+| example-uart-read-write/top.sv       | top-level module                                             |
+| example-uart-read-write/uart2axi4.sv | an AXI4 master, which can convert the commands received by UART RX into AXI4 read and write operations, and send the data read out by read operations through UART TX |
+| RTL/ddr_sdram_ctrl.sv                | DDR1 controller                                              |
+
+There is a CH340E chip (USB to UART) on the [FPGA+DDR1 board](#Hardware Design Example), so after plugging in the USB cable, you can see the serial port corresponding to the UART on the computer (you need to download and install the driver of CH341 on  [www.wch. cn/product/CH340.html](http://www.wch.cn/product/CH340.html) first).
+
+After the project is programed to FPGA, double-click to open a serial port tool **UartSession.exe** (it is in the [example-uart-read-write](./example-uart-read-write) directory), open the COM port corresponding to the board according to the prompt, and then type the following command + Enter, you can Write the 4 data 0x0123, 0x4567, 0x89ab, and 0xcdef into the starting address 0x12345. (A write operation with a burst length of 4 occurs on the AXI4 bus).
+
+    w12345 0123 4567 89ab cdef
+
+Then use the following command + enter to read 8 data from the starting address 0x12345 (7 means the burst length is 8).
+
+    r12345 7
+
+The effect is as shown in the figure below. The first 4 data (0123 4567 89ab cdef) are what we have written into DDR1, and the last 4 data are random data that comes with DDR1 after initialization.
+
+|              ![](./figures/UartSession.png)              |
+| :------------------------------------------------------: |
+| Figure : Use UartSession.exe to perform DDR1 read/write. |
+
+The length of the write burst is how much data there is in the write command. For example, the burst length of the following write command is 9, and 10 pieces of data are written to the starting address 0x00000
+
+    w0 1234 2345 3456 4567 5678 6789 789a 89ab 9abc abcd
+
+The read command needs to specify the burst length. For example, the burst length of the following command is 30 (0x1e), and 31 data are read from the starting address 0x00000
+
+    r0 1e
+
+
+
+# RTL Simulation
+
+The files required for the simulation are in the [SIM](./SIM) folder, where:
+
+| File Name                 | Introduction                                                 |
+| :------------------------ | :----------------------------------------------------------- |
+| tb_ddr_sdram_ctrl.sv      | Testbench code, simulation top-level.                        |
+| axi_self_test_master.sv   | AXI4 master. First, write the data into DDR1 through AXI4, and then read back and verify. |
+| micron_ddr_sdram_model.sv | [MICRON's DDR1 simulation model](https://www.micron.com/products/dram/ddr-sdram/part-catalog/mt46v64m8p-5b) |
+
+The behavior of the simulation project is the same as that of the self-test program, axi_self_test_master.sv, as the AXI4 host, writes regular data into DDR1, but not all of them, only the first 16KB of DDR1 (because the memory spave of the simulation model is limited), and then repeatedly read data round by round to compare whether there is unmatched data, if there is, generate a high level of one clock cycle on the `error` signal.
+
+Before using iverilog for simulation, you need to install iverilog , see: [iverilog_usage](https://github.com/WangXuan95/WangXuan95/blob/main/iverilog_usage/iverilog_usage.md)
+
+Then double-click tb_ddr_sdram_ctrl_run_iverilog.bat to run the simulation, and then you can open the generated dump.vcd file to view the waveform.
+
+## Modify Simulation Attributes
+
+The default configuration parameters of the above simulation fit MT46V64M8, namely `ROW_BITS=13`, `COL_BITS=11`, and `DQ_BITS=8`. If you want to simulate other DDR1 chips, you need to modify them in tb_ddr_sdram_ctrl.sv. For MICRON's DDR1 series, these parameters should be modified as follows:
+
+| DDR1 part  | BA_BITS | ROW_BITS | COL_BITS | DQ_LEVEL |
+| :--------: | :-----: | :------: | :------: | :------: |
+| MT46V64M4  |    2    |    13    |    11    |    0     |
+| MT46V128M4 |    2    |    13    |    12    |    0     |
+| MT46V256M4 |    2    |    14    |    12    |    0     |
+| MT46V32M8  |    2    |    13    |    10    |    1     |
+| MT46V64M8  |    2    |    13    |    11    |    1     |
+| MT46V128M8 |    2    |    14    |    11    |    1     |
+| MT46V16M16 |    2    |    13    |    9     |    2     |
+| MT46V32M16 |    2    |    13    |    10    |    2     |
+| MT46V64M16 |    2    |    14    |    10    |    2     |
+
+In addition, you can modify lines 18\~19 of tb_ddr_sdram_ctrl.sv to modify the burst length of reads and writes during simulation.
+
+
+
+# Related Links
+
+* MICRON's DDR1 simulation model : https://www.micron.com/products/dram/ddr-sdram/part-catalog/mt46v64m8p-5b
+* MT46V64M8 datasheet : https://media-www.micron.com/-/media/client/global/documents/products/data-sheet/dram/ddr1/512mb_ddr.pdf?rev=4e1e995d6d2240e293286770f193d57d
