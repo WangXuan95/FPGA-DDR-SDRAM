@@ -38,10 +38,10 @@
 
 set_global_assignment -name FAMILY "Cyclone IV E"
 set_global_assignment -name DEVICE EP4CE6E22C8
-set_global_assignment -name TOP_LEVEL_ENTITY top
+set_global_assignment -name TOP_LEVEL_ENTITY fpga_top
 set_global_assignment -name ORIGINAL_QUARTUS_VERSION 13.1
 set_global_assignment -name PROJECT_CREATION_TIME_DATE "17:45:24  JANUARY 23, 2021"
-set_global_assignment -name LAST_QUARTUS_VERSION "18.1.0 Standard Edition"
+set_global_assignment -name LAST_QUARTUS_VERSION 13.1
 set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
 set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0
 set_global_assignment -name MAX_CORE_JUNCTION_TEMP 85
@@ -49,9 +49,11 @@ set_global_assignment -name ERROR_CHECK_FREQUENCY_DIVISOR 1
 set_global_assignment -name NOMINAL_CORE_SUPPLY_VOLTAGE 1.2V
 set_global_assignment -name STRATIX_DEVICE_IO_STANDARD "2.5 V"
 
-set_global_assignment -name SYSTEMVERILOG_FILE top.sv
-set_global_assignment -name SYSTEMVERILOG_FILE uart2axi4.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../RTL/ddr_sdram_ctrl.sv
+set_global_assignment -name VERILOG_FILE fpga_top.v
+set_global_assignment -name VERILOG_FILE uart/uart2axi4.v
+set_global_assignment -name VERILOG_FILE uart/uart_rx.v
+set_global_assignment -name VERILOG_FILE uart/uart_tx.v
+set_global_assignment -name VERILOG_FILE ../RTL/ddr_sdram_ctrl.v
 
 set_location_assignment PIN_23 -to clk50m
 
@@ -90,6 +92,7 @@ set_location_assignment PIN_76 -to ddr_dq[4]
 set_location_assignment PIN_75 -to ddr_dq[5]
 set_location_assignment PIN_74 -to ddr_dq[6]
 set_location_assignment PIN_73 -to ddr_dq[7]
+
 
 
 set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top

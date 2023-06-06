@@ -1,28 +1,28 @@
 
 //--------------------------------------------------------------------------------------------------------
-// Module  : top
+// Module  : fpga_top
 // Type    : synthesizable, FPGA's top, IP's example design
-// Standard: SystemVerilog 2005 (IEEE1800-2005)
+// Standard: Verilog 2001 (IEEE1364-2001)
 // Function: an example of ddr_sdram_ctrl,
-//           write increase data to DDR,
-//           then read data and check whether they are increasing
+//           use UART command to read/write DDR
 //--------------------------------------------------------------------------------------------------------
 
-module top (
+module fpga_top (
     input  wire        clk50m,
-
+    
+    output wire        uart_tx,
+    input  wire        uart_rx,
+    
     output wire        ddr_ck_p, ddr_ck_n,
     output wire        ddr_cke,
     output wire        ddr_cs_n, ddr_ras_n, ddr_cas_n, ddr_we_n,
     output wire [ 1:0] ddr_ba,
     output wire [12:0] ddr_a,
-    inout       [ 7:0] ddr_dq,
-    inout       [ 0:0] ddr_dqs,
     output wire [ 0:0] ddr_dm,
-    
-    output wire        error,
-    output wire [15:0] error_cnt
+    inout       [ 0:0] ddr_dqs,
+    inout       [ 7:0] ddr_dq
 );
+
 
 // -------------------------------------------------------------------------------------
 //   DDR-SDRAM parameters
@@ -82,16 +82,16 @@ defparam  altpll_i.bandwidth_type = "AUTO",  altpll_i.clk0_divide_by = 1,  altpl
 // -------------------------------------------------------------------------------------
 //   AXI4 master for testing
 // -------------------------------------------------------------------------------------
-axi_self_test_master #(
-    .A_WIDTH_TEST( A_WIDTH     ),
-    .A_WIDTH     ( A_WIDTH     ),
-    .D_WIDTH     ( D_WIDTH     ),
-    .D_LEVEL     ( DQ_LEVEL    ),
-    .WBURST_LEN  ( 8'd15       ),
-    .RBURST_LEN  ( 8'd15       )
-) axi_m_i (
+uart2axi4 #(
+    .CLK_FREQ    ( 75000000    ),        // clk is 75MHz
+    .BAUD_RATE   ( 115200      ),        // UART baud rate = 115200
+    .PARITY      ( "NONE"      ),        // no parity
+    .BYTE_WIDTH  ( D_WIDTH / 8 ),
+    .A_WIDTH     ( A_WIDTH     )
+) u_uart2axi4 (
     .rstn        ( rstn        ),
     .clk         ( clk         ),
+    // AXI4 master ----------------------
     .awvalid     ( awvalid     ),
     .awready     ( awready     ),
     .awaddr      ( awaddr      ),
@@ -110,8 +110,9 @@ axi_self_test_master #(
     .rready      ( rready      ),
     .rlast       ( rlast       ),
     .rdata       ( rdata       ),
-    .error       ( error       ),
-    .error_cnt   ( error_cnt   )
+    // UART ----------------------
+    .i_uart_rx   ( uart_rx     ),
+    .o_uart_tx   ( uart_tx     )
 );
 
 
@@ -127,7 +128,7 @@ ddr_sdram_ctrl #(
     .tREFC       ( 10'd512     ),
     .tW2I        ( 8'd7        ),
     .tR2I        ( 8'd7        )
-) ddr_ctrl_i(
+) u_ddr_ctrl (
     .rstn_async  ( locked      ),
     .drv_clk     ( clk300m     ),
     .rstn        ( rstn        ),

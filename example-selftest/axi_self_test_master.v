@@ -2,7 +2,7 @@
 //--------------------------------------------------------------------------------------------------------
 // Module  : axi_self_test_master
 // Type    : synthesizable
-// Standard: SystemVerilog 2005 (IEEE1800-2005)
+// Standard: Verilog 2001 (IEEE1364-2001)
 // Function: write increase data to AXI4 slave,
 //           then read data and check whether they are increasing
 //--------------------------------------------------------------------------------------------------------
@@ -39,13 +39,22 @@ module axi_self_test_master #(
     output reg  [       15:0] error_cnt
 );
 
-initial {awaddr, araddr} = '0;
-initial {error, error_cnt} = '0;
+
+initial {awaddr, araddr} = 0;
+initial {error, error_cnt} = 0;
 
 wire       aw_end;
-reg        awaddr_carry = '0;
-reg  [7:0] w_cnt = '0;
-enum logic [2:0] {INIT, AW, W, B, AR, R} stat = INIT;
+reg        awaddr_carry = 1'b0;
+reg  [7:0] w_cnt = 8'd0;
+
+localparam [2:0] INIT = 3'd0,
+                 AW   = 3'd1,
+                 W    = 3'd2,
+                 B    = 3'd3,
+                 AR   = 3'd4,
+                 R    = 3'd5;
+
+reg [2:0] stat = INIT;
 
 generate if(A_WIDTH_TEST<A_WIDTH)
     assign aw_end = awaddr[A_WIDTH_TEST];
@@ -57,26 +66,27 @@ assign awvalid = stat==AW;
 assign awlen = WBURST_LEN;
 assign wvalid = stat==W;
 assign wlast = w_cnt==WBURST_LEN;
-assign wdata = (D_WIDTH)'(awaddr);
+assign wdata = awaddr;
 assign bready = 1'b1;
 assign arvalid = stat==AR;
 assign arlen = RBURST_LEN;
 assign rready = 1'b1;
 
-wire [A_WIDTH:0] araddr_next = {1'b0,araddr} + (A_WIDTH+1)'(1<<D_LEVEL);
+localparam [A_WIDTH:0] ADDR_INC = (1<<D_LEVEL);
+wire [A_WIDTH:0] araddr_next = {1'b0,araddr} + ADDR_INC;
 
 always @ (posedge clk or negedge rstn)
     if(~rstn) begin
-        {awaddr_carry, awaddr} <= '0;
+        {awaddr_carry, awaddr} <= 0;
         w_cnt <= 8'd0;
-        araddr <= '0;
+        araddr <= 0;
         stat <= INIT;
     end else begin
         case(stat)
             INIT: begin
-                {awaddr_carry, awaddr} <= '0;
+                {awaddr_carry, awaddr} <= 0;
                 w_cnt <= 8'd0;
-                araddr <= '0;
+                araddr <= 0;
                 stat <= AW;
             end
             AW: if(awready) begin
@@ -84,7 +94,7 @@ always @ (posedge clk or negedge rstn)
                 stat <= W;
             end
             W: if(wready) begin
-                {awaddr_carry, awaddr} <= {awaddr_carry, awaddr} + (A_WIDTH+1)'(1<<D_LEVEL);
+                {awaddr_carry, awaddr} <= {awaddr_carry, awaddr} + ADDR_INC;
                 w_cnt <= w_cnt + 8'd1;
                 if(wlast)
                     stat <= B;
@@ -100,7 +110,7 @@ always @ (posedge clk or negedge rstn)
                 if(rlast) begin
                     stat <= AR;
                     if(araddr_next[A_WIDTH_TEST])
-                        araddr <= '0;
+                        araddr <= 0;
                 end
             end
         endcase
@@ -109,7 +119,8 @@ always @ (posedge clk or negedge rstn)
 // ------------------------------------------------------------
 //  read and write mismatch detect
 // ------------------------------------------------------------
-wire [D_WIDTH-1:0] rdata_idle = (D_WIDTH)'(araddr);
+wire [D_WIDTH-1:0] rdata_idle = araddr;
+
 always @ (posedge clk or negedge rstn)
     if(~rstn) begin
         error <= 1'b0;
