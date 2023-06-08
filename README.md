@@ -40,24 +40,24 @@ In addition, since the interface timing of each generation of DDR-SDRAM (such as
 
 # Table of Contents
 
-* [Hardware Design Guidelines](#Hardware Design Guidelines)
-* [Hard Design Example](#Hard Design Example)
-* [DDR1 Control Module Manual](#DDR1 Control Module Manual)
-  * [Module Parameters](#Module Parameters)
-  * [Module Interface: clock and reset](#Module Interface: clock and reset)
-  * [Module Interface: DDR1 interface](#Module Interface: DDR1 interface)
-  * [Module Interface: AXI4 slave](#Module Interface: AXI4 slave)
-  * [Bit Width Parameters](#Bit Width Parameters)
-  * [Timing Parameters](#Timing Parameters)
-* [FPGA Demo Projects](#FPGA Demo Projects)
-  * [Self-test demo](#Self-test demo)
-  * [UART DDR1 read/write demo](#UART DDR1 read/write demo)
-* [RTL Simulation](#RTL Simulation)
-  * [Modify Simulation Attributes](#Modify Simulation Attributes)
+* [Hardware Design Guidelines](#en1)
+* [Hard Design Example](#en2)
+* [DDR1 Control Module Manual](#en3)
+  * [Module Parameters](#en31)
+  * [Module Interface: clock and reset](#en32)
+  * [Module Interface: DDR1 interface](#en33)
+  * [Module Interface: AXI4 slave](#en34)
+  * [Bit Width Parameters](#en35)
+  * [Timing Parameters](#en36)
+* [FPGA Demo Projects](#en4)
+  * [Self-test demo](#en41)
+  * [UART DDR1 read/write demo](#en42)
+* [RTL Simulation](#en5)
+  * [Modify Simulation Attributes](#en51)
 
 　
 
-# Hardware Design Guidelines
+# <span id="en1">Hardware Design Guidelines</span>
 
 For FPGA selection, only an FPGA with a sufficient number of common IOs can drive DDR1. The IO level standard of DDR1 is often SSTL-2, which is compatible with 2.5V LVTTL or 2.5V LVCMOS, so the power supply of the corresponding FPGA IO bank should be 2.5V, and should be configured as 2.5V LVTTL or 2.5V LVCMOS in the FPGA development software .
 
@@ -76,7 +76,7 @@ The following table shows the pin defination of the DDR1 chip and the points tha
 
 　
 
-# Hard Design Example
+# <span id="en2">Hard Design Example</span>
 
 For demonstration, I used the cheapest FPGA of Altera Cyclone IV (model: EP4CE6E22C8N) and MICRON's 64MB DDR1 (model MT46V64M8TG-6T) to design a small board. All the demo project of this repository can run on this board directly. If you want to use DDR1 in your own PCB design, just refer to this board's design.
 
@@ -90,11 +90,11 @@ The design of this board is open in LCEDA, see [oshwhub.com/wangxuan/fpga-ddr-ce
 
 　
 
-# DDR1 Control Module Manual
+# <span id="en3">DDR1 Control Module Manual</span>
 
 See [RTL/ddr_sdram_ctrl.v](./RTL/ddr_sdram_ctrl.v) for the DDR1 controller code, which can automatically initialize DDR1 and refresh it regularly. The module has a AXI4 slave interface through which reads and writes to DDR1 can be accomplished. This section introduce in detail how to use this module.
 
-## Module Parameters
+## <span id="en31">Module Parameters</span>
 
 Verilog parameters of this module are defined as follows:
 
@@ -124,7 +124,7 @@ These parameters are described in the table below:
 |    tW2I     | Timing |   1\~255    |       7       | This parameter specifies the interval from the last write command of a write action to the activation command (ACT) of the next action. See [Timing Parameters](#Timing Parameters) for details. |
 |    tR2I     | Timing |   1\~255    |       7       | This parameter specifies the interval from the last read command of a read action to the activation command (ACT) of the next action. See [Timing Parameters](#Timing Parameters) for details. |
 
-## Module Interface: clock and reset
+## <span id="en32">Module Interface: clock and reset</span>
 
 This module requires a drive clock and a drive reset, as follows:
 
@@ -149,7 +149,7 @@ The upper limit of `drv_clk` also depends on the chip model of DDR1. For example
 
 In addition, the upper limit of the clock frequency is also limited by the speed of the FPGA. Too high a clock frequency can easily lead to timing failure. This design fully considers the timing safety design, most registers work in the clk clock domain with a lower frequency; some registers work in a clock that is twice the frequency of the clk clock, and the combinational logic of the input port is very short; Under the `drv_clk` of the frequency, but the input port comes directly from the register output of the upper stage (no combinational logic). Therefore, even on the EP4CE6E22C8N with a very low speed class, the correct operation of the module is guaranteed at a drive clock of 300MHz.
 
-## Module Interface: DDR1 interface
+## <span id="en33">Module Interface: DDR1 interface</span>
 
 Following is the DDR1 interface of this module. These signals should be pinout directly from the FPGA and connected to the DDR1 chip.
 
@@ -171,7 +171,7 @@ It can be seen that the bit width of some signals of the DDR1 interface is relat
 
 If you want to know the waveforms of the DDR1 interface during initialization, read/write, and refresh, please perform [RTL Simulation](#RTL Simulation).
 
-## Module Interface: AXI4 slave
+## <span id="en34">Module Interface: AXI4 slave</span>
 
 The DDR1 controller provides clock and reset signals for the AXI4 slave interface, as follows. The AXI4 masters should use them as their clock and reset.
 
@@ -275,7 +275,7 @@ A typical AXI4 read operation with a burst length of 5 (`arlen=4`) is shown abov
 > Note: When the module parameter `READ_BUFFER=0`, the module will save a BRAM resource and also reduce the delay between address channel handshake and data transfer. But the DDR1 controller ignores the `rready=0` condition and does not wait for the AXI4 host to be ready to accept data. This will destroy the completeness of the AXI4 protocol, but it may be useful in some simple situations.
 
 
-## Bit Width Parameters
+## <span id="en35">Bit Width Parameters</span>
 
 This section describes how to determine the 4 parameters: `BA_BITS` , `ROW_BITS` , `COL_BITS` and `DQ_LEVEL`.
 
@@ -293,7 +293,7 @@ Take [MICRON's DDR-SDRAM](https://www.micron.com/products/dram/ddr-sdram) series
 | MT46V32M16 |      16      |          2           |    2     |    2    |    13    |    10    |     2048     | 16\*2^(2+13+10)=512Mb=64MB |         26          |
 | MT46V64M16 |      16      |          2           |    2     |    2    |    14    |    10    |     4096     | 16\*2^(2+14+10)=1Gb=128MB  |         27          |
 
-## Timing Parameters
+## <span id="en36">Timing Parameters</span>
 
 This section describes how to determine the 3 timing parameters `tREFC`, `tW2I` and `tR2I`.
 
@@ -333,11 +333,12 @@ We know that DDR1 requires periodic refresh action, and `tREFC` specifies the re
                     _______________________
     ddr_a     XXXXXX__RA_XXXXXXX_CA0_X_CA1_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
+
 　
 
-# FPGA Demo Projects
+# <span id="en4">FPGA Demo Projects</span>
 
-## Self-test demo
+## <span id="en41">Self-test demo</span>
 
 I provide a DDR1 read and write self-test project based on the [FPGA+DDR1 board](#Hardware Design Example) I designed. The project directory is [example-selftest](./example-selftest) , please open it with Quartus.
 
@@ -361,7 +362,7 @@ The behavior of the demo project is:
 
 > WBURST_LEN and RBURST_LEN can be set differently.
 
-## UART DDR1 read/write demo
+## <span id="en42">UART DDR1 read/write demo</span>
 
 I provide a UART read and write project based on the [FPGA+DDR1 board](#Hardware Design Example) I designed. In this project, you can read and write DDR1 with different burst lengths through UART commands. The project directory is [example-uart-read-write](./example-uart-read-write) , please open it with Quartus.
 
@@ -399,9 +400,10 @@ The read command needs to specify the burst length. For example, the burst lengt
 
     r0 1e
 
+
 　
 
-# RTL Simulation
+# <span id="en5">RTL Simulation</span>
 
 The files required for the simulation are in the [SIM](./SIM) folder, where:
 
@@ -417,7 +419,7 @@ Before using iverilog for simulation, you need to install iverilog , see: [iveri
 
 Then double-click tb_ddr_sdram_ctrl_run_iverilog.bat to run the simulation, and then you can open the generated dump.vcd file to view the waveform.
 
-## Modify Simulation Attributes
+## <span id="en51">Modify Simulation Attributes</span>
 
 The default configuration parameters of the above simulation fit MT46V64M8, namely `ROW_BITS=13`, `COL_BITS=11`, and `DQ_BITS=8`. If you want to simulate other DDR1 chips, you need to modify them in tb_ddr_sdram_ctrl.v. For MICRON's DDR1 series, these parameters should be modified as follows:
 
@@ -783,6 +785,7 @@ AXI4 总线的地址（awaddr和araddr）统一是字节地址，模块会根据
                     _______________________
     ddr_a     XXXXXX__RA_XXXXXXX_CA0_X_CA1_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
+
 　
 
 # 示例程序
@@ -848,6 +851,7 @@ AXI4 总线的地址（awaddr和araddr）统一是字节地址，模块会根据
 读命令则直接指定突发长度，例如以下命令的突发长度为 30 （0x1e），从起始地址 0x00000 将 30 个数据读出
 
     r0 1e
+
 
 　
 
