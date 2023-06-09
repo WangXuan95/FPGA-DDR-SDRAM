@@ -536,7 +536,7 @@ generate if(READ_BUFFER) begin
                 valid <= 1'b1;
         end
 
-    reg [DWIDTH-1:0] mem [(1<<AWIDTH)];
+    reg [DWIDTH-1:0] mem [((1<<AWIDTH)-1) : 0];
 
     always @ (posedge clk)
         if(i_v_e)
