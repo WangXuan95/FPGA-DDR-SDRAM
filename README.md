@@ -26,7 +26,7 @@ Replacing SDR-SDRAM with DDR-SDRAM (DDR1) in low-end FPGA designs.
 
 Many low-end FPGA development boards use SDR-SDRAM as off-chip memory, but DDR-SDRAM (DDR1) is larger and less expensive than SDR-SDRAM. And like SDR-SDRAM, DDR1 can also be directly driven by common IO pins of low-end FPGAs. I write a soft core DDR1 controller with a slave AXI4 interface for user. The features of this controller are:
 
-* **Platform Independent** : Written in pure SystemVerilog and can run on various FPGAs including Altera and Xilinx.
+* **Platform Independent** : Written in pure Verilog and can run on various FPGAs including Altera and Xilinx.
 * **Compatible** : Supports DDR1 of various bit widths and capacities (this has been verify by simulation on MICRON's DDR1 models).
 
 To demonstrate the use of this controller, I provide two demo projects:
@@ -476,7 +476,7 @@ DDR1 SDRAM 控制器，具有 AXI4 slave 接口，接收 AXI4 读写操作进行
 
 很多低端 FPGA 开发板使用 SDR-SDRAM 作为片外存储，而 DDR-SDRAM (DDR1) 比 SDR-SDRAM 容量更大，价格更低。且与SDR-SDRAM一样，DDR1也能使用低端FPGA的普通的IO管脚直接驱动。我编写了一个软核的 AXI4 接口的 DDR1 控制器。该控制器的特点有：
 
-* **平台无关** ：纯 SystemVerilog 编写，可以在 Altera 和 Xilinx 等各种 FPGA 上运行。
+* **平台无关** ：纯 Verilog 编写，可以在 Altera 和 Xilinx 等各种 FPGA 上运行。
 * **兼容性强** ：支持各种位宽和容量的 DDR1 （已在MICRON所有位宽和容量的DDR1型号上仿真通过）。
 
 为了展示该控制器的使用方法，我提供了两个示例程序：
